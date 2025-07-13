@@ -31,7 +31,7 @@ class DarkSkyZone(BaseModel):
     latitude: float
     longitude: float
     bortle_scale: int
-    designation_type: str
+    designation_type: Optional[str] = "Undesignated"
     distance_miles: float
     description: str
 
@@ -300,6 +300,14 @@ async def find_dark_sky_zones(location: LocationInput):
     # Calculate distances to all dark sky zones
     zones_with_distance = []
     for zone in DARK_SKY_ZONES:
+        # Skip zones with incomplete essential data
+        if (zone.get("latitude") is None or 
+            zone.get("longitude") is None or 
+            zone.get("bortle_scale") is None or
+            zone.get("name") is None or
+            zone.get("description") is None):
+            continue
+            
         zone_location = (zone["latitude"], zone["longitude"])
         distance = geodesic(user_location, zone_location).miles
         
@@ -308,7 +316,7 @@ async def find_dark_sky_zones(location: LocationInput):
             latitude=zone["latitude"],
             longitude=zone["longitude"],
             bortle_scale=zone["bortle_scale"],
-            designation_type=zone["designation_type"],
+            designation_type=zone["designation_type"] or "Undesignated",
             distance_miles=round(distance, 1),
             description=zone["description"]
         )
