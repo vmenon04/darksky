@@ -4,7 +4,7 @@ import { Location } from '../types';
 import { getCurrentLocation } from '../api';
 
 interface LocationInputProps {
-  onLocationSubmit: (location: Location) => void;
+  onLocationSubmit: (location: Location, isCurrentLocation?: boolean) => void;
   loading?: boolean;
 }
 
@@ -67,7 +67,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
         latitude: lat,
         longitude: lng,
         name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-      });
+      }, false);
     } 
     // If we have a zipcode, geocode it
     else if (zipcode.trim()) {
@@ -86,7 +86,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
             latitude: coords.lat,
             longitude: coords.lng,
             name: coords.name
-          });
+          }, false);
         } else {
           setError('Could not find coordinates for this zipcode. Please try a different zipcode or use manual coordinates.');
         }
@@ -110,6 +110,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
       setLongitude(location.longitude.toString());
       // Clear zipcode when using current location
       setZipcode('');
+      
+      // Immediately submit the current location
+      onLocationSubmit(location, true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get current location');
     } finally {

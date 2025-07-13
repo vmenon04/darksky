@@ -9,14 +9,21 @@ import { Search, Moon, Star, Calendar, MapPin, Github } from 'lucide-react';
 
 function App() {
   const [location, setLocation] = useState<Location | null>(null);
+  const [userCurrentLocation, setUserCurrentLocation] = useState<Location | null>(null);
   const [darkSkyZones, setDarkSkyZones] = useState<DarkSkyZone[]>([]);
   const [recommendations, setRecommendations] = useState<StargazingRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'zones' | 'recommendations'>('zones');
 
-  const handleLocationSubmit = async (newLocation: Location) => {
+  const handleLocationSubmit = async (newLocation: Location, isCurrentLocation?: boolean) => {
     setLocation(newLocation);
+    
+    // If this is the user's current location, store it separately
+    if (isCurrentLocation) {
+      setUserCurrentLocation(newLocation);
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -120,6 +127,7 @@ function App() {
                         key={zone.name}
                         zone={zone}
                         rank={index + 1}
+                        userCurrentLocation={userCurrentLocation}
                       />
                     ))}
                   </div>
