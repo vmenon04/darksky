@@ -175,7 +175,6 @@ function App() {
                 <span className="text-gray-300">Dark Sky Zone Finder</span>
               </div>
               <div className="flex items-center space-x-6 text-sm text-gray-400">
-                <span>Data from International Dark-Sky Association</span>
                 <a
                   href="https://coff.ee/vmenon"
                   target="_blank"
