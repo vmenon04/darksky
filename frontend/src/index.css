@@ -38,6 +38,32 @@
   }
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Improve touch targets */
+  button {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+    min-width: 44px;
+  }
+  
+  /* Better card spacing on mobile */
+  .glass-card {
+    margin-bottom: 1rem;
+  }
+  
+  /* Improve text readability on mobile */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* Improve focus states for accessibility */
+button:focus-visible {
+  outline: 2px solid #3498DB;
+  outline-offset: 2px;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
