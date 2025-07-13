@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Clock, Moon, Star, Eye } from 'lucide-react';
+import { MapPin, Clock, Moon, Star, Eye, Navigation } from 'lucide-react';
 import { DarkSkyZone } from '../types';
 
 interface DarkSkyZoneCardProps {
@@ -30,19 +30,68 @@ const getBortleColor = (scale: number): string => {
 };
 
 export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank }) => {
+  const handleOpenInAppleMaps = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude: userLat, longitude: userLng } = position.coords;
+          const mapsUrl = `https://maps.apple.com/?saddr=${userLat},${userLng}&daddr=${zone.latitude},${zone.longitude}&dirflg=d`;
+          window.open(mapsUrl, '_blank');
+        },
+        (error) => {
+          console.warn('Location access denied or failed, opening destination only');
+          const mapsUrl = `https://maps.apple.com/?daddr=${zone.latitude},${zone.longitude}`;
+          window.open(mapsUrl, '_blank');
+        },
+        {
+          timeout: 10000,
+          enableHighAccuracy: true
+        }
+      );
+    } else {
+      console.warn('Geolocation not supported');
+      const mapsUrl = `https://maps.apple.com/?daddr=${zone.latitude},${zone.longitude}`;
+      window.open(mapsUrl, '_blank');
+    }
+  };
+
+  const handleOpenInGoogleMaps = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude: userLat, longitude: userLng } = position.coords;
+          const mapsUrl = `https://www.google.com/maps/dir/${userLat},${userLng}/${zone.latitude},${zone.longitude}`;
+          window.open(mapsUrl, '_blank');
+        },
+        (error) => {
+          console.warn('Location access denied or failed, opening destination only');
+          const mapsUrl = `https://www.google.com/maps/place/${zone.latitude},${zone.longitude}`;
+          window.open(mapsUrl, '_blank');
+        },
+        {
+          timeout: 10000,
+          enableHighAccuracy: true
+        }
+      );
+    } else {
+      console.warn('Geolocation not supported');
+      const mapsUrl = `https://www.google.com/maps/place/${zone.latitude},${zone.longitude}`;
+      window.open(mapsUrl, '_blank');
+    }
+  };
   return (
     <div className="glass-card p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-1 min-w-0">
           <div className="w-8 h-8 bg-cosmic-blue rounded-full flex items-center justify-center text-sm font-bold">
             {rank}
           </div>
-          <div>
-            <h3 className="text-xl font-bold text-white">{zone.name}</h3>
-            <p className="text-cosmic-blue text-sm">{zone.designation_type}</p>
+          <div className="min-w-0 flex-1 h-12 flex flex-col justify-center">
+            <h3 className="text-xl font-bold text-white line-clamp-1">{zone.name}</h3>
+            <p className="text-cosmic-blue text-sm line-clamp-1">{zone.designation_type}</p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right ml-2">
           <div className="flex items-center space-x-1 text-star-yellow">
             <MapPin size={16} />
             <span className="text-sm">{zone.distance_miles} mi</span>
@@ -66,15 +115,35 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank }) 
           </div>
         </div>
 
-        <p className="text-gray-300 text-sm leading-relaxed">
-          {zone.description}
-        </p>
+        <div className="h-16 overflow-hidden">
+          <p className="text-gray-300 text-sm leading-relaxed line-clamp-3">
+            {zone.description}
+          </p>
+        </div>
 
         <div className="flex items-center space-x-4 text-xs text-gray-400">
           <div className="flex items-center space-x-1">
             <span>📍</span>
             <span>{zone.latitude.toFixed(4)}°, {zone.longitude.toFixed(4)}°</span>
           </div>
+        </div>
+
+        <div className="flex space-x-2 mt-4">
+          <button
+            onClick={handleOpenInAppleMaps}
+            className="flex-1 bg-cosmic-blue/20 hover:bg-cosmic-blue/30 border border-cosmic-blue/50 text-cosmic-blue px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 group"
+          >
+            <Navigation size={14} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-medium">Apple Maps</span>
+          </button>
+          
+          <button
+            onClick={handleOpenInGoogleMaps}
+            className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-400 px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 group"
+          >
+            <Navigation size={14} className="group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-medium">Google Maps</span>
+          </button>
         </div>
       </div>
     </div>
