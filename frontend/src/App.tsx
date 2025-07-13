@@ -5,7 +5,7 @@ import { RecommendationCard } from './components/RecommendationCard';
 import { StarsBackground } from './components/StarsBackground';
 import { findDarkSkyZones, getStargazingRecommendations } from './api';
 import { Location, DarkSkyZone, StargazingRecommendation } from './types';
-import { Search, Moon, Star, Calendar, MapPin, Github } from 'lucide-react';
+import { Search, Moon, Star, Calendar, MapPin, Github, Coffee } from 'lucide-react';
 
 function App() {
   const [location, setLocation] = useState<Location | null>(null);
@@ -176,6 +176,15 @@ function App() {
               </div>
               <div className="flex items-center space-x-6 text-sm text-gray-400">
                 <span>Data from International Dark-Sky Association</span>
+                <a
+                  href="https://coff.ee/vmenon"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-1 hover:text-yellow-400 transition-colors"
+                >
+                  <Coffee size={16} />
+                  <span>Buy Me a Coffee</span>
+                </a>
                 <a
                   href="https://github.com"
                   target="_blank"
