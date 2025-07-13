@@ -23,6 +23,9 @@ export interface AstronomicalConditions {
   best_viewing_end: string;
   visibility_score: number;
   conditions_description: string;
+  bortle_scale?: number;
+  bortle_scale_estimated?: boolean;
+  bortle_scale_source?: string;
 }
 
 export interface StargazingRecommendation {

@@ -7,6 +7,9 @@ from geopy.distance import geodesic
 import math
 from typing import List, Dict, Optional
 import json
+import os
+import httpx
+import re
 
 app = FastAPI(title="Dark Sky Zone Finder API", version="1.0.0")
 
@@ -41,233 +44,145 @@ class AstronomicalConditions(BaseModel):
     best_viewing_end: str
     visibility_score: float
     conditions_description: str
+    bortle_scale: int
+    bortle_scale_estimated: bool
+    bortle_scale_source: str
 
 class StargazingRecommendation(BaseModel):
     date: str
     conditions: AstronomicalConditions
     dark_sky_zones: List[DarkSkyZone]
 
-DARK_SKY_ZONES = [
-    {
-        "name": "Cherry Springs State Park",
-        "latitude": 41.6611,
-        "longitude": -77.8206,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "One of the darkest spots on the East Coast, ideal for astrophotography."
-    },
-    {
-        "name": "Shenandoah National Park",
-        "latitude": 38.2928,
-        "longitude": -78.6795,
-        "bortle_scale": 3,
-        "designation_type": "Dark Sky Area",
-        "description": "Beautiful mountain views with relatively dark skies in Virginia's Blue Ridge Mountains."
-    },
-    {
-        "name": "Great Smoky Mountains National Park",
-        "latitude": 35.6118,
-        "longitude": -83.4895,
-        "bortle_scale": 3,
-        "designation_type": "Dark Sky Area",
-        "description": "Popular national park on the Tennessee-North Carolina border with good dark sky areas."
-    },
-    {
-        "name": "Congaree National Park",
-        "latitude": 33.7948,
-        "longitude": -80.7821,
-        "bortle_scale": 3,
-        "designation_type": "Dark Sky Area",
-        "description": "South Carolina's only national park with excellent night sky viewing opportunities."
-    },
-    {
-        "name": "Assateague Island National Seashore",
-        "latitude": 38.0556,
-        "longitude": -75.1561,
-        "bortle_scale": 3,
-        "designation_type": "Dark Sky Area",
-        "description": "Coastal dark sky location on the Maryland-Virginia border with ocean horizon views."
-    },
-    {
-        "name": "Cape Hatteras National Seashore",
-        "latitude": 35.2322,
-        "longitude": -75.5201,
-        "bortle_scale": 2,
-        "designation_type": "Dark Sky Area",
-        "description": "Outer Banks location in North Carolina with exceptional dark skies over the Atlantic."
-    },
-    {
-        "name": "Mammoth Cave National Park",
-        "latitude": 37.1862,
-        "longitude": -86.1004,
-        "bortle_scale": 3,
-        "designation_type": "International Dark Sky Park",
-        "description": "Kentucky's International Dark Sky Park with excellent viewing conditions."
-    },
-    {
-        "name": "Mont-Mégantic National Park",
-        "latitude": 45.4553,
-        "longitude": -71.1528,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Reserve",
-        "description": "World's first International Dark Sky Reserve with protected core zone in Quebec."
-    },
+# Load dark sky zones from JSON file
+def load_dark_sky_zones():
+    """Load dark sky zones from JSON file."""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(current_dir, "dark_sky_zones.json")
+        with open(json_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        # Fallback to empty list if file not found
+        print("Warning: dark_sky_zones.json not found, using empty list")
+        return []
+    except json.JSONDecodeError as e:
+        print(f"Error parsing dark_sky_zones.json: {e}")
+        return []
+
+DARK_SKY_ZONES = load_dark_sky_zones()
+
+async def get_bortle_scale_from_location(latitude: float, longitude: float) -> tuple[int, bool]:
+    """
+    Fetch real-time Bortle scale from Clear Outside API.
+    Returns tuple of (bortle_scale, is_estimated) where:
+    - bortle_scale: 1-9 scale value
+    - is_estimated: True if estimated fallback was used, False if from API
+    """
+    try:
+        url = f"https://clearoutside.com/forecast/{latitude:.2f}/{longitude:.2f}"
+        print(f"Fetching Bortle scale from: {url}")
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            
+            # Parse the HTML to extract Bortle class
+            html_content = response.text
+            
+            # Look for the Bortle class in the HTML
+            # Pattern: <strong>Class X</strong> where X is the Bortle class
+            bortle_match = re.search(r'<strong>Class\s+(\d+)</strong>', html_content)
+            
+            if bortle_match:
+                bortle_class = int(bortle_match.group(1))
+                print(f"Found Bortle class: {bortle_class}")
+                # Clear Outside sometimes returns values > 9, so cap at 9
+                return min(bortle_class, 9), False  # False = not estimated
+            else:
+                # Fallback: look for alternative patterns
+                # Pattern: Bortle. &nbsp;<strong>XX.XX</strong>
+                bortle_match2 = re.search(r'Bortle\.\s*&nbsp;<strong>([\d.]+)</strong>', html_content)
+                if bortle_match2:
+                    bortle_value = float(bortle_match2.group(1))
+                    print(f"Found Bortle value: {bortle_value}")
+                    # Convert to integer Bortle scale (1-9)
+                    return min(max(1, int(round(bortle_value))), 9), False  # False = not estimated
+                
+                # Debug: Look for any mention of Bortle or Class
+                print("Searching for any Bortle/Class mentions in HTML...")
+                bortle_mentions = re.findall(r'[Bb]ortle[^<]*', html_content)
+                class_mentions = re.findall(r'[Cc]lass[^<]*', html_content)
+                print(f"Bortle mentions: {bortle_mentions[:3]}")  # First 3 matches
+                print(f"Class mentions: {class_mentions[:3]}")   # First 3 matches
+                
+                # If no match found, fall back to intelligent estimation
+                print(f"Warning: Could not parse Bortle scale from Clear Outside for {latitude}, {longitude}")
+                estimated_scale = estimate_bortle_scale_fallback(latitude, longitude)
+                return estimated_scale, True  # True = estimated
+                
+    except httpx.TimeoutException:
+        print(f"Timeout fetching Bortle scale for {latitude}, {longitude}")
+        estimated_scale = estimate_bortle_scale_fallback(latitude, longitude)
+        return estimated_scale, True  # True = estimated
+    except httpx.HTTPError as e:
+        print(f"HTTP error fetching Bortle scale: {e}")
+        estimated_scale = estimate_bortle_scale_fallback(latitude, longitude)
+        return estimated_scale, True  # True = estimated
+    except Exception as e:
+        print(f"Error fetching Bortle scale from Clear Outside: {e}")
+        estimated_scale = estimate_bortle_scale_fallback(latitude, longitude)
+        return estimated_scale, True  # True = estimated
+
+def estimate_bortle_scale_fallback(latitude: float, longitude: float) -> int:
+    """
+    Estimate Bortle scale based on location when API is unavailable.
+    Uses proximity to known cities and population density heuristics.
+    """
+    from geopy.distance import geodesic
     
-    {
-        "name": "Cosmic Campground",
-        "latitude": 33.4084,
-        "longitude": -108.7992,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Sanctuary",
-        "description": "Remote sanctuary in New Mexico's Gila National Forest with pristine dark skies."
-    },
-    {
-        "name": "Big Bend National Park",
-        "latitude": 29.1275,
-        "longitude": -103.2425,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "Remote desert location with some of the darkest night skies in the lower 48 states."
-    },
-    {
-        "name": "McDonald Observatory",
-        "latitude": 30.6797,
-        "longitude": -104.0247,
-        "bortle_scale": 1,
-        "designation_type": "Dark Sky Area",
-        "description": "Professional observatory site in Texas with exceptional seeing conditions."
-    },
-    {
-        "name": "Enchanted Rock State Park",
-        "latitude": 30.5050,
-        "longitude": -98.8197,
-        "bortle_scale": 4,
-        "designation_type": "Dark Sky Area",
-        "description": "Central Texas location with good dark skies and granite dome for stargazing."
-    },
-    {
-        "name": "Headlands International Dark Sky Park",
-        "latitude": 45.7772,
-        "longitude": -84.7736,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "Michigan's first International Dark Sky Park near Lake Michigan."
-    },
-    {
-        "name": "Stephen C. Foster State Park",
-        "latitude": 30.8410,
-        "longitude": -82.3526,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "Georgia's Okefenokee Swamp location with excellent dark sky conditions."
-    },
-    {
-        "name": "Kissimmee Prairie Preserve State Park",
-        "latitude": 27.5317,
-        "longitude": -81.0431,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "Florida's first International Dark Sky Park with wide-open prairie views."
-    },
+    # Major cities with known high light pollution (Bortle 8-9)
+    major_cities = [
+        # US Cities
+        (40.7128, -74.0060),  # New York City
+        (34.0522, -118.2437), # Los Angeles
+        (41.8781, -87.6298),  # Chicago
+        (29.7604, -95.3698),  # Houston
+        (33.4484, -112.0740), # Phoenix
+        (39.7392, -104.9903), # Denver
+        (37.7749, -122.4194), # San Francisco
+        (47.6062, -122.3321), # Seattle
+        (25.7617, -80.1918),  # Miami
+        (42.3601, -71.0589),  # Boston
+        # International Cities
+        (51.5074, -0.1278),   # London
+        (48.8566, 2.3522),    # Paris
+        (35.6762, 139.6503),  # Tokyo
+        (55.7558, 37.6176),   # Moscow
+    ]
     
-    {
-        "name": "Death Valley National Park",
-        "latitude": 36.2468,
-        "longitude": -116.8167,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "One of the darkest places in North America, perfect for deep-sky observations."
-    },
-    {
-        "name": "Great Basin National Park",
-        "latitude": 39.0058,
-        "longitude": -114.2579,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "Remote location with exceptional night sky visibility and minimal light pollution."
-    },
-    {
-        "name": "Bryce Canyon National Park",
-        "latitude": 37.5930,
-        "longitude": -112.1871,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "High altitude location with exceptional air quality and dark skies."
-    },
-    {
-        "name": "Natural Bridges National Monument",
-        "latitude": 37.6063,
-        "longitude": -110.0067,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "World's first International Dark Sky Park with pristine night sky conditions."
-    },
-    {
-        "name": "Capitol Reef National Park",
-        "latitude": 38.2872,
-        "longitude": -111.2478,
-        "bortle_scale": 2,
-        "designation_type": "International Dark Sky Park",
-        "description": "Utah's red rock country with excellent dark sky viewing opportunities."
-    },
-    {
-        "name": "Hovenweep National Monument",
-        "latitude": 37.3839,
-        "longitude": -109.0783,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "Remote Four Corners location with exceptional night sky conditions."
-    },
-    {
-        "name": "Chaco Culture National Historical Park",
-        "latitude": 36.0544,
-        "longitude": -107.9914,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Park",
-        "description": "Ancient Puebloan site in New Mexico with pristine dark skies."
-    },
-    {
-        "name": "Flagstaff Dark Sky City",
-        "latitude": 35.1983,
-        "longitude": -111.6513,
-        "bortle_scale": 4,
-        "designation_type": "International Dark Sky City",
-        "description": "First International Dark Sky City with strong light pollution ordinances."
-    },
-    {
-        "name": "Joshua Tree National Park",
-        "latitude": 33.8734,
-        "longitude": -115.9010,
-        "bortle_scale": 2,
-        "designation_type": "Dark Sky Area",
-        "description": "California desert location popular with astrophotographers and stargazers."
-    },
-    {
-        "name": "Anza-Borrego Desert State Park",
-        "latitude": 33.2584,
-        "longitude": -116.4023,
-        "bortle_scale": 2,
-        "designation_type": "Dark Sky Area",
-        "description": "California's largest state park with excellent desert dark skies."
-    },
+    user_location = (latitude, longitude)
     
-    {
-        "name": "Jasper National Park",
-        "latitude": 52.8734,
-        "longitude": -117.9543,
-        "bortle_scale": 1,
-        "designation_type": "Dark Sky Preserve",
-        "description": "World's largest accessible dark sky preserve with excellent viewing conditions."
-    },
-    {
-        "name": "Aoraki Mackenzie International Dark Sky Reserve",
-        "latitude": -44.0000,
-        "longitude": 170.1000,
-        "bortle_scale": 1,
-        "designation_type": "International Dark Sky Reserve",
-        "description": "Gold-tier reserve in New Zealand with exceptional Southern Hemisphere viewing."
-    }
-]
+    # Check distance to major cities
+    min_city_distance = float('inf')
+    for city_lat, city_lon in major_cities:
+        city_location = (city_lat, city_lon)
+        distance = geodesic(user_location, city_location).kilometers
+        min_city_distance = min(min_city_distance, distance)
+    
+    # Estimate based on distance to major cities
+    if min_city_distance < 10:  # Within 10km of major city
+        estimated = 8  # City sky
+    elif min_city_distance < 50:  # Within 50km
+        estimated = 6  # Bright suburban sky
+    elif min_city_distance < 100:  # Within 100km
+        estimated = 4  # Rural/suburban transition
+    elif min_city_distance < 200:  # Within 200km
+        estimated = 3  # Rural sky
+    else:  # Far from cities
+        estimated = 2  # Typical truly dark site
+    
+    print(f"Estimated Bortle scale for {latitude}, {longitude}: {estimated} (nearest city: {min_city_distance:.1f}km)")
+    return estimated
 
 def calculate_moon_phase_and_illumination(date: datetime) -> tuple:
     """Calculate moon phase and illumination percentage for a given date."""
@@ -307,15 +222,52 @@ def calculate_moon_times(latitude: float, longitude: float, date: datetime) -> t
     
     try:
         moon_rise = observer.next_rising(moon)
+        moon_rise_str = moon_rise.datetime().strftime('%H:%M')
+    except ephem.AlwaysUpError:
+        moon_rise_str = None
+    except ephem.NeverUpError:
+        moon_rise_str = None
+    
+    try:
         moon_set = observer.next_setting(moon)
+        moon_set_str = moon_set.datetime().strftime('%H:%M')
+    except ephem.AlwaysUpError:
+        moon_set_str = None
+    except ephem.NeverUpError:
+        moon_set_str = None
+    
+    return moon_rise_str, moon_set_str
+
+def calculate_best_viewing_times(moon_set_time: str, moon_rise_time: str) -> tuple:
+    """Calculate the best viewing window based on moon times."""
+    if moon_set_time is None and moon_rise_time is None:
+        # Moon is never up or always up
+        return "20:00", "05:00"
+    
+    if moon_set_time and not moon_rise_time:
+        # Moon sets but doesn't rise again
+        best_start = moon_set_time
+        best_end = "05:00"
+    elif moon_rise_time and not moon_set_time:
+        # Moon rises but doesn't set
+        best_start = "20:00"
+        best_end = moon_rise_time
+    else:
+        # Both times available
+        moon_set_hour = int(moon_set_time.split(':')[0])
+        moon_rise_hour = int(moon_rise_time.split(':')[0])
         
-        # Convert to local time strings
-        rise_time = datetime.strptime(str(moon_rise), '%Y/%m/%d %H:%M:%S').strftime('%H:%M')
-        set_time = datetime.strptime(str(moon_set), '%Y/%m/%d %H:%M:%S').strftime('%H:%M')
-        
-        return rise_time, set_time
-    except:
-        return None, None
+        if moon_set_hour <= 6:  # Moon sets early morning
+            best_start = moon_set_time
+            best_end = "05:00"
+        elif moon_rise_hour >= 22:  # Moon rises late
+            best_start = "20:00"
+            best_end = moon_rise_time
+        else:
+            best_start = "20:00"
+            best_end = "05:00"
+    
+    return best_start, best_end
 
 def calculate_visibility_score(moon_illumination: float, bortle_scale: int) -> float:
     """Calculate a visibility score based on moon illumination and light pollution."""
@@ -349,60 +301,72 @@ async def find_dark_sky_zones(location: LocationInput):
     zones_with_distance = []
     for zone in DARK_SKY_ZONES:
         zone_location = (zone["latitude"], zone["longitude"])
-        distance_km = geodesic(user_location, zone_location).kilometers
-        distance_miles = distance_km * 0.621371  # Convert km to miles
+        distance = geodesic(user_location, zone_location).miles
         
-        zone_data = DarkSkyZone(
-            **zone,
-            distance_miles=round(distance_miles, 2)
+        dark_sky_zone = DarkSkyZone(
+            name=zone["name"],
+            latitude=zone["latitude"],
+            longitude=zone["longitude"],
+            bortle_scale=zone["bortle_scale"],
+            designation_type=zone["designation_type"],
+            distance_miles=round(distance, 1),
+            description=zone["description"]
         )
-        zones_with_distance.append(zone_data)
+        zones_with_distance.append(dark_sky_zone)
     
+    # Sort by distance and return top 5
     closest_zones = sorted(zones_with_distance, key=lambda x: x.distance_miles)[:5]
     
     return {"dark_sky_zones": closest_zones}
 
 @app.post("/stargazing-recommendations")
 async def get_stargazing_recommendations(location: LocationInput):
-    """Get stargazing recommendations for the next 14 days."""
-    recommendations = []
-    
-    # Get closest dark sky zones
+    """Get stargazing recommendations for the next 7 days."""
+    # Get closest dark sky zones first
     zones_response = await find_dark_sky_zones(location)
     closest_zones = zones_response["dark_sky_zones"]
     
-    # Calculate conditions for next 14 days
-    base_date = datetime.now()
+    recommendations = []
+    current_date = datetime.now()
+    
+    # Use the best (closest) dark sky zone for moon calculations if available
+    best_zone = closest_zones[0] if closest_zones else None
+    moon_calc_lat = best_zone.latitude if best_zone else location.latitude
+    moon_calc_lon = best_zone.longitude if best_zone else location.longitude
+    
     for i in range(14):
-        current_date = base_date + timedelta(days=i)
+        date = current_date + timedelta(days=i)
         
-        moon_phase, moon_illumination = calculate_moon_phase_and_illumination(current_date)
-        moon_rise, moon_set = calculate_moon_times(location.latitude, location.longitude, current_date)
+        # Calculate moon conditions using the best dark sky zone location
+        moon_phase, moon_illumination = calculate_moon_phase_and_illumination(date)
+        moon_rise_time, moon_set_time = calculate_moon_times(moon_calc_lat, moon_calc_lon, date)
+        best_viewing_start, best_viewing_end = calculate_best_viewing_times(moon_set_time, moon_rise_time)
         
-        best_viewing_start = "21:00"
-        best_viewing_end = "05:00"
+        # Calculate visibility score using the best zone's Bortle scale
+        best_zone_bortle = best_zone.bortle_scale if best_zone else 5
         
-        best_zone = closest_zones[0] if closest_zones else None
-        visibility_score = calculate_visibility_score(
-            moon_illumination, 
-            best_zone.bortle_scale if best_zone else 7
-        )
-        
+        visibility_score = calculate_visibility_score(moon_illumination, best_zone_bortle)
         conditions_desc = get_conditions_description(moon_illumination, visibility_score)
+        
+        # Data source is from the dark sky zones database
+        bortle_source = f"Dark Sky Zone: {best_zone.name}" if best_zone else "Default (no zones found)"
         
         conditions = AstronomicalConditions(
             moon_phase=moon_phase,
             moon_illumination=round(moon_illumination, 1),
-            moon_rise_time=moon_rise,
-            moon_set_time=moon_set,
+            moon_rise_time=moon_rise_time,
+            moon_set_time=moon_set_time,
             best_viewing_start=best_viewing_start,
             best_viewing_end=best_viewing_end,
             visibility_score=visibility_score,
-            conditions_description=conditions_desc
+            conditions_description=conditions_desc,
+            bortle_scale=best_zone_bortle,
+            bortle_scale_estimated=False,  # This is from our curated database
+            bortle_scale_source=bortle_source
         )
         
         recommendation = StargazingRecommendation(
-            date=current_date.strftime('%Y-%m-%d'),
+            date=date.strftime('%Y-%m-%d'),
             conditions=conditions,
             dark_sky_zones=closest_zones[:3]  # Top 3 zones
         )
@@ -413,9 +377,97 @@ async def get_stargazing_recommendations(location: LocationInput):
     
     return {"recommendations": recommendations}
 
+@app.post("/current-location-conditions")
+async def get_current_location_conditions(location: LocationInput):
+    """Get current stargazing conditions for the user's exact location."""
+    current_date = datetime.now()
+    
+    # Calculate moon conditions for user's location
+    moon_phase, moon_illumination = calculate_moon_phase_and_illumination(current_date)
+    moon_rise_time, moon_set_time = calculate_moon_times(location.latitude, location.longitude, current_date)
+    best_viewing_start, best_viewing_end = calculate_best_viewing_times(moon_set_time, moon_rise_time)
+    
+    # Get real-time Bortle scale for user's location
+    user_bortle_scale, is_estimated = await get_bortle_scale_from_location(location.latitude, location.longitude)
+    
+    visibility_score = calculate_visibility_score(moon_illumination, user_bortle_scale)
+    conditions_desc = get_conditions_description(moon_illumination, visibility_score)
+    
+    bortle_source = "Estimated based on location" if is_estimated else "Clear Outside API"
+    
+    conditions = AstronomicalConditions(
+        moon_phase=moon_phase,
+        moon_illumination=round(moon_illumination, 1),
+        moon_rise_time=moon_rise_time,
+        moon_set_time=moon_set_time,
+        best_viewing_start=best_viewing_start,
+        best_viewing_end=best_viewing_end,
+        visibility_score=visibility_score,
+        conditions_description=conditions_desc,
+        bortle_scale=user_bortle_scale,
+        bortle_scale_estimated=is_estimated,
+        bortle_scale_source=bortle_source
+    )
+    
+    return {
+        "location": location,
+        "date": current_date.strftime('%Y-%m-%d'),
+        "conditions": conditions
+    }
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/bortle-scale/{latitude}/{longitude}")
+async def get_bortle_scale_endpoint(latitude: float, longitude: float):
+    """Get the current Bortle scale for a specific location."""
+    bortle_scale, is_estimated = await get_bortle_scale_from_location(latitude, longitude)
+    
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "bortle_scale": bortle_scale,
+        "estimated": is_estimated,
+        "source": "Estimated based on location" if is_estimated else "Clear Outside API",
+        "description": get_bortle_description(bortle_scale),
+        "note": "Estimated values are approximations based on proximity to major cities. For precise measurements, real-time API data is preferred." if is_estimated else "Real-time data from Clear Outside weather service."
+    }
+
+@app.get("/test-bortle/{latitude}/{longitude}")
+async def test_bortle_scale(latitude: float, longitude: float):
+    """Test endpoint to debug Bortle scale fetching."""
+    try:
+        bortle_scale, is_estimated = await get_bortle_scale_from_location(latitude, longitude)
+        return {
+            "latitude": latitude,
+            "longitude": longitude,
+            "bortle_scale": bortle_scale,
+            "is_estimated": is_estimated,
+            "type_bortle": type(bortle_scale).__name__,
+            "type_estimated": type(is_estimated).__name__
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "latitude": latitude,
+            "longitude": longitude
+        }
+
+def get_bortle_description(bortle_scale: int) -> str:
+    """Get a human-readable description of the Bortle scale."""
+    descriptions = {
+        1: "Excellent dark-sky site",
+        2: "Typical truly dark site",
+        3: "Rural sky",
+        4: "Rural/suburban transition",
+        5: "Suburban sky",
+        6: "Bright suburban sky",
+        7: "Suburban/urban transition",
+        8: "City sky",
+        9: "Inner-city sky"
+    }
+    return descriptions.get(bortle_scale, "Unknown")
 
 if __name__ == "__main__":
     import uvicorn

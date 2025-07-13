@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Moon, Star, Eye, Clock, Sunrise, Sunset } from 'lucide-react';
+import { Calendar, Moon, Star, Eye, Clock, Sunrise, Sunset, AlertTriangle, MapPin } from 'lucide-react';
 import { StargazingRecommendation } from '../types';
 
 interface RecommendationCardProps {
@@ -44,6 +44,28 @@ const getVisibilityBgColor = (score: number): string => {
   return 'bg-red-400/20';
 };
 
+const getBortleDescription = (scale: number): string => {
+  const descriptions = {
+    1: 'Pristine Dark Sky',
+    2: 'Excellent Dark Sky', 
+    3: 'Good Dark Sky',
+    4: 'Moderate Light Pollution',
+    5: 'Bright Suburban Sky',
+    6: 'Bright Urban Sky',
+    7: 'Inner City Sky',
+    8: 'Extreme Light Pollution',
+    9: 'Extreme Light Pollution+'
+  };
+  return descriptions[scale as keyof typeof descriptions] || `Scale ${scale}`;
+};
+
+const getBortleColor = (scale: number): string => {
+  if (scale <= 2) return 'text-green-400';
+  if (scale <= 4) return 'text-yellow-400'; 
+  if (scale <= 6) return 'text-orange-400';
+  return 'text-red-400';
+};
+
 export const RecommendationCard: React.FC<RecommendationCardProps> = ({ 
   recommendation, 
   isTopRecommendation = false 
@@ -70,15 +92,42 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="text-lg font-bold text-white mb-1">{formattedDate}</h3>
-          <div className="flex items-center space-x-2 text-sm text-gray-300">
+          <div className="flex items-center space-x-2 text-sm text-gray-300 mb-1">
             <Calendar size={14} />
             <span>{new Date(date).toDateString()}</span>
           </div>
+          {conditions.bortle_scale_source?.startsWith('Dark Sky Zone:') && (
+            <div className="flex items-center space-x-2 text-sm text-cosmic-blue">
+              <MapPin size={14} />
+              <span>{conditions.bortle_scale_source.replace('Dark Sky Zone: ', '')}</span>
+            </div>
+          )}
         </div>
-        <div className={`px-3 py-1 rounded-full ${getVisibilityBgColor(conditions.visibility_score)}`}>
-          <span className={`text-sm font-bold ${getVisibilityColor(conditions.visibility_score)}`}>
-            {conditions.visibility_score}% Score
-          </span>
+        <div className="flex items-center space-x-3">
+          {/* Bortle Scale Display */}
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-1 mb-1">
+              <Eye size={14} className={getBortleColor(conditions.bortle_scale || 5)} />
+              {conditions.bortle_scale_estimated && (
+                <div title="Estimated value">
+                  <AlertTriangle size={12} className="text-yellow-400" />
+                </div>
+              )}
+            </div>
+            <div className={`text-sm font-bold ${getBortleColor(conditions.bortle_scale || 5)}`}>
+              Bortle {conditions.bortle_scale ?? '?'}
+            </div>
+            <div className={`text-xs ${getBortleColor(conditions.bortle_scale || 5)}`}>
+              {getBortleDescription(conditions.bortle_scale || 5)}
+            </div>
+          </div>
+          
+          {/* Visibility Score */}
+          <div className={`px-3 py-1 rounded-full ${getVisibilityBgColor(conditions.visibility_score)}`}>
+            <span className={`text-sm font-bold ${getVisibilityColor(conditions.visibility_score)}`}>
+              {conditions.visibility_score}% Score
+            </span>
+          </div>
         </div>
       </div>
 
@@ -128,6 +177,12 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           <p className="text-sm text-gray-300 leading-relaxed">
             {conditions.conditions_description}
           </p>
+          {conditions.bortle_scale_estimated && (
+            <div className="mt-2 flex items-center space-x-2 text-xs text-yellow-400">
+              <AlertTriangle size={12} />
+              <span>Light pollution estimate based on location. {conditions.bortle_scale_source}.</span>
+            </div>
+          )}
         </div>
 
         {recommendation.dark_sky_zones.length > 0 && (

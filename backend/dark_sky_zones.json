@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Cherry Springs State Park",
+    "latitude": 41.6611,
+    "longitude": -77.8206,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "One of the darkest spots on the East Coast, ideal for astrophotography.",
+    "country": "USA",
+    "state": "Pennsylvania"
+  },
+  {
+    "name": "Shenandoah National Park",
+    "latitude": 38.2928,
+    "longitude": -78.6795,
+    "bortle_scale": 3,
+    "designation_type": "Dark Sky Area",
+    "description": "Beautiful mountain views with relatively dark skies in Virginia's Blue Ridge Mountains.",
+    "country": "USA",
+    "state": "Virginia"
+  },
+  {
+    "name": "Great Smoky Mountains National Park",
+    "latitude": 35.6118,
+    "longitude": -83.4895,
+    "bortle_scale": 3,
+    "designation_type": "Dark Sky Area",
+    "description": "Popular national park on the Tennessee-North Carolina border with good dark sky areas.",
+    "country": "USA",
+    "state": "Tennessee"
+  },
+  {
+    "name": "Congaree National Park",
+    "latitude": 33.7948,
+    "longitude": -80.7821,
+    "bortle_scale": 3,
+    "designation_type": "Dark Sky Area",
+    "description": "South Carolina's only national park with excellent night sky viewing opportunities.",
+    "country": "USA",
+    "state": "South Carolina"
+  },
+  {
+    "name": "Assateague Island National Seashore",
+    "latitude": 38.0556,
+    "longitude": -75.1561,
+    "bortle_scale": 3,
+    "designation_type": "Dark Sky Area",
+    "description": "Coastal dark sky location on the Maryland-Virginia border with ocean horizon views.",
+    "country": "USA",
+    "state": "Maryland"
+  },
+  {
+    "name": "Cape Hatteras National Seashore",
+    "latitude": 35.2322,
+    "longitude": -75.5201,
+    "bortle_scale": 2,
+    "designation_type": "Dark Sky Area",
+    "description": "Outer Banks location in North Carolina with exceptional dark skies over the Atlantic.",
+    "country": "USA",
+    "state": "North Carolina"
+  },
+  {
+    "name": "Mammoth Cave National Park",
+    "latitude": 37.1862,
+    "longitude": -86.1004,
+    "bortle_scale": 3,
+    "designation_type": "International Dark Sky Park",
+    "description": "Kentucky's International Dark Sky Park with excellent viewing conditions.",
+    "country": "USA",
+    "state": "Kentucky"
+  },
+  {
+    "name": "Mont-Mégantic National Park",
+    "latitude": 45.4553,
+    "longitude": -71.1528,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Reserve",
+    "description": "World's first International Dark Sky Reserve with protected core zone in Quebec.",
+    "country": "Canada",
+    "state": "Quebec"
+  },
+  {
+    "name": "Cosmic Campground",
+    "latitude": 33.4084,
+    "longitude": -108.7992,
+    "bortle_scale": 1,
+    "designation_type": "International Dark Sky Sanctuary",
+    "description": "Remote sanctuary in New Mexico's Gila National Forest with pristine dark skies.",
+    "country": "USA",
+    "state": "New Mexico"
+  },
+  {
+    "name": "Big Bend National Park",
+    "latitude": 29.1275,
+    "longitude": -103.2425,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Remote desert location with some of the darkest night skies in the lower 48 states.",
+    "country": "USA",
+    "state": "Texas"
+  },
+  {
+    "name": "McDonald Observatory",
+    "latitude": 30.6797,
+    "longitude": -104.0247,
+    "bortle_scale": 1,
+    "designation_type": "Dark Sky Area",
+    "description": "Professional observatory site in Texas with exceptional seeing conditions.",
+    "country": "USA",
+    "state": "Texas"
+  },
+  {
+    "name": "Enchanted Rock State Park",
+    "latitude": 30.5050,
+    "longitude": -98.8197,
+    "bortle_scale": 4,
+    "designation_type": "Dark Sky Area",
+    "description": "Central Texas location with good dark skies and granite dome for stargazing.",
+    "country": "USA",
+    "state": "Texas"
+  },
+  {
+    "name": "Headlands International Dark Sky Park",
+    "latitude": 45.7772,
+    "longitude": -84.7736,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Michigan's first International Dark Sky Park near Lake Michigan.",
+    "country": "USA",
+    "state": "Michigan"
+  },
+  {
+    "name": "Stephen C. Foster State Park",
+    "latitude": 30.8410,
+    "longitude": -82.3526,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Georgia's Okefenokee Swamp location with excellent dark sky conditions.",
+    "country": "USA",
+    "state": "Georgia"
+  },
+  {
+    "name": "Kissimmee Prairie Preserve State Park",
+    "latitude": 27.5317,
+    "longitude": -81.0431,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Florida's first International Dark Sky Park with wide-open prairie views.",
+    "country": "USA",
+    "state": "Florida"
+  },
+  {
+    "name": "Death Valley National Park",
+    "latitude": 36.2468,
+    "longitude": -116.8167,
+    "bortle_scale": 1,
+    "designation_type": "International Dark Sky Park",
+    "description": "One of the darkest places in North America, perfect for deep-sky observations.",
+    "country": "USA",
+    "state": "California"
+  },
+  {
+    "name": "Great Basin National Park",
+    "latitude": 39.0058,
+    "longitude": -114.2579,
+    "bortle_scale": 1,
+    "designation_type": "International Dark Sky Park",
+    "description": "Remote location with exceptional night sky visibility and minimal light pollution.",
+    "country": "USA",
+    "state": "Nevada"
+  },
+  {
+    "name": "Bryce Canyon National Park",
+    "latitude": 37.5930,
+    "longitude": -112.1871,
+    "bortle_scale": 1,
+    "designation_type": "International Dark Sky Park",
+    "description": "High altitude location with exceptional air quality and dark skies.",
+    "country": "USA",
+    "state": "Utah"
+  },
+  {
+    "name": "Capitol Reef National Park",
+    "latitude": 38.2972,
+    "longitude": -111.2615,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Central Utah's designated International Dark Sky Park with excellent stargazing.",
+    "country": "USA",
+    "state": "Utah"
+  },
+  {
+    "name": "Hovenweep National Monument",
+    "latitude": 37.3833,
+    "longitude": -109.0783,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Ancient Puebloan ruins under exceptionally dark skies on Utah-Colorado border.",
+    "country": "USA",
+    "state": "Utah"
+  },
+  {
+    "name": "Arches National Park",
+    "latitude": 38.7331,
+    "longitude": -109.5925,
+    "bortle_scale": 2,
+    "designation_type": "Dark Sky Area",
+    "description": "Famous for red rock arches and excellent night sky viewing opportunities.",
+    "country": "USA",
+    "state": "Utah"
+  },
+  {
+    "name": "Canyonlands National Park",
+    "latitude": 38.3269,
+    "longitude": -109.8783,
+    "bortle_scale": 2,
+    "designation_type": "Dark Sky Area",
+    "description": "Remote desert landscape with minimal light pollution and stunning night skies.",
+    "country": "USA",
+    "state": "Utah"
+  },
+  {
+    "name": "Glacier National Park",
+    "latitude": 48.7596,
+    "longitude": -113.7870,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Montana's pristine wilderness with exceptional dark sky conditions.",
+    "country": "USA",
+    "state": "Montana"
+  },
+  {
+    "name": "Yellowstone National Park",
+    "latitude": 44.4280,
+    "longitude": -110.5885,
+    "bortle_scale": 2,
+    "designation_type": "Dark Sky Area",
+    "description": "America's first national park with excellent stargazing opportunities.",
+    "country": "USA",
+    "state": "Wyoming"
+  },
+  {
+    "name": "Grand Teton National Park",
+    "latitude": 43.7904,
+    "longitude": -110.6818,
+    "bortle_scale": 2,
+    "designation_type": "Dark Sky Area",
+    "description": "Dramatic mountain peaks with pristine night skies in Wyoming.",
+    "country": "USA",
+    "state": "Wyoming"
+  },
+  {
+    "name": "Rocky Mountain National Park",
+    "latitude": 40.3428,
+    "longitude": -105.6836,
+    "bortle_scale": 3,
+    "designation_type": "Dark Sky Area",
+    "description": "High altitude park in Colorado with good dark sky viewing.",
+    "country": "USA",
+    "state": "Colorado"
+  },
+  {
+    "name": "Black Canyon of the Gunnison National Park",
+    "latitude": 38.5753,
+    "longitude": -107.7416,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Colorado's dramatic canyon with exceptional night sky viewing.",
+    "country": "USA",
+    "state": "Colorado"
+  },
+  {
+    "name": "Great Sand Dunes National Park",
+    "latitude": 37.7332,
+    "longitude": -105.5122,
+    "bortle_scale": 2,
+    "designation_type": "International Dark Sky Park",
+    "description": "Unique landscape of massive sand dunes under pristine dark skies.",
+    "country": "USA",
+    "state": "Colorado"
+  }
+]
