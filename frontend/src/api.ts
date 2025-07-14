@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Location, DarkSkyZone, StargazingRecommendation } from './types';
+import { Location, DarkSkyZone, StargazingRecommendation, WeatherConditions } from './types';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -36,6 +36,18 @@ export const getStargazingRecommendations = async (location: Location, zoneName?
   } catch (error) {
     console.error('Error getting stargazing recommendations:', error);
     throw new Error('Failed to get stargazing recommendations');
+  }
+};
+
+export const getWeatherForecast = async (location: Location, days: number = 5): Promise<Array<{date: string, weather: WeatherConditions}>> => {
+  try {
+    const response = await api.get(`/weather-forecast/${location.latitude}/${location.longitude}`, {
+      params: { days }
+    });
+    return response.data.forecasts;
+  } catch (error) {
+    console.error('Error getting weather forecast:', error);
+    throw new Error('Failed to get weather forecast');
   }
 };
 

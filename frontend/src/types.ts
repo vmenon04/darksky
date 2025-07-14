@@ -4,6 +4,20 @@ export interface Location {
   name?: string;
 }
 
+export interface WeatherConditions {
+  temperature_f: number;
+  temperature_c: number;
+  humidity: number;
+  cloud_cover: number;
+  visibility_miles: number;
+  wind_speed_mph: number;
+  wind_direction: string;
+  condition: string;
+  condition_description: string;
+  weather_score: number;
+  precipitation_chance: number;
+}
+
 export interface DarkSkyZone {
   name: string;
   latitude: number;
@@ -26,6 +40,7 @@ export interface AstronomicalConditions {
   bortle_scale?: number;
   bortle_scale_estimated?: boolean;
   bortle_scale_source?: string;
+  weather?: WeatherConditions;
 }
 
 export interface StargazingRecommendation {

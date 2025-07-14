@@ -10,6 +10,17 @@ import json
 import os
 import httpx
 import re
+from dotenv import load_dotenv
+import hashlib
+import time
+
+# Load environment variables
+load_dotenv()
+
+# Weather cache configuration
+WEATHER_CACHE = {}
+CACHE_EXPIRY_MINUTES = 60  # Cache weather data for 1 hour
+MAX_CACHE_SIZE = 1000  # Maximum number of cached entries
 
 app = FastAPI(title="Stargazr API", version="1.0.0")
 
@@ -25,6 +36,19 @@ class LocationInput(BaseModel):
     latitude: float
     longitude: float
     name: Optional[str] = None
+
+class WeatherConditions(BaseModel):
+    temperature_f: float
+    temperature_c: float
+    humidity: int
+    cloud_cover: int
+    visibility_miles: float
+    wind_speed_mph: float
+    wind_direction: str
+    condition: str
+    condition_description: str
+    weather_score: float  # 0-100, higher is better for stargazing
+    precipitation_chance: int
 
 class DarkSkyZone(BaseModel):
     name: str
@@ -47,11 +71,74 @@ class AstronomicalConditions(BaseModel):
     bortle_scale: int
     bortle_scale_estimated: bool
     bortle_scale_source: str
+    weather: Optional[WeatherConditions] = None
 
 class StargazingRecommendation(BaseModel):
     date: str
     conditions: AstronomicalConditions
     dark_sky_zones: List[DarkSkyZone]
+
+# Weather caching functions
+def clean_weather_cache():
+    """Remove expired entries from weather cache."""
+    current_time = time.time()
+    expired_keys = [
+        key for key, (data, timestamp) in WEATHER_CACHE.items()
+        if current_time - timestamp > (CACHE_EXPIRY_MINUTES * 60)
+    ]
+    for key in expired_keys:
+        del WEATHER_CACHE[key]
+    
+    # If cache is still too large, remove oldest entries
+    if len(WEATHER_CACHE) > MAX_CACHE_SIZE:
+        # Sort by timestamp and keep only the newest entries
+        sorted_items = sorted(WEATHER_CACHE.items(), key=lambda x: x[1][1], reverse=True)
+        WEATHER_CACHE.clear()
+        for key, value in sorted_items[:MAX_CACHE_SIZE]:
+            WEATHER_CACHE[key] = value
+
+def get_weather_cache_key(latitude: float, longitude: float, date: datetime) -> str:
+    """Generate a cache key for weather data."""
+    # Round coordinates to reduce cache fragmentation (within ~1km accuracy)
+    lat_rounded = round(latitude, 2)
+    lon_rounded = round(longitude, 2)
+    # Use date only (not time) since we're dealing with daily forecasts
+    date_str = date.strftime('%Y-%m-%d')
+    
+    cache_string = f"{lat_rounded}_{lon_rounded}_{date_str}"
+    return hashlib.md5(cache_string.encode()).hexdigest()
+
+def get_cached_weather(latitude: float, longitude: float, date: datetime) -> Optional[WeatherConditions]:
+    """Retrieve weather data from cache if available and not expired."""
+    cache_key = get_weather_cache_key(latitude, longitude, date)
+    
+    if cache_key in WEATHER_CACHE:
+        data, timestamp = WEATHER_CACHE[cache_key]
+        current_time = time.time()
+        
+        # Check if cache entry is still valid
+        if current_time - timestamp < (CACHE_EXPIRY_MINUTES * 60):
+            print(f"Cache HIT for {latitude:.2f}, {longitude:.2f} on {date.strftime('%Y-%m-%d')}")
+            return data
+        else:
+            # Remove expired entry
+            del WEATHER_CACHE[cache_key]
+            print(f"Cache EXPIRED for {latitude:.2f}, {longitude:.2f} on {date.strftime('%Y-%m-%d')}")
+    
+    print(f"Cache MISS for {latitude:.2f}, {longitude:.2f} on {date.strftime('%Y-%m-%d')}")
+    return None
+
+def cache_weather_data(latitude: float, longitude: float, date: datetime, weather_data: WeatherConditions):
+    """Store weather data in cache."""
+    cache_key = get_weather_cache_key(latitude, longitude, date)
+    current_time = time.time()
+    
+    # Clean cache periodically
+    if len(WEATHER_CACHE) % 50 == 0:  # Clean every 50 additions
+        clean_weather_cache()
+    
+    WEATHER_CACHE[cache_key] = (weather_data, current_time)
+    print(f"Cached weather for {latitude:.2f}, {longitude:.2f} on {date.strftime('%Y-%m-%d')} (Cache size: {len(WEATHER_CACHE)})")
 
 # Load dark sky zones from JSON file
 def load_dark_sky_zones():
@@ -274,19 +361,199 @@ def calculate_visibility_score(moon_illumination: float, bortle_scale: int) -> f
     bortle_score = (9 - bortle_scale) / 8.0
     moon_score = (100 - moon_illumination) / 100.0
     visibility_score = (bortle_score * 0.6) + (moon_score * 0.4)
-    
     return round(visibility_score * 100, 1)
 
-def get_conditions_description(moon_illumination: float, visibility_score: float) -> str:
-    """Generate a human-readable description of viewing conditions."""
-    if visibility_score >= 80:
-        return "Excellent conditions - Perfect for deep-sky observations and astrophotography"
-    elif visibility_score >= 60:
-        return "Good conditions - Suitable for most astronomical observations"
-    elif visibility_score >= 40:
-        return "Fair conditions - Basic stargazing possible, limited deep-sky viewing"
+async def get_weather_forecast(latitude: float, longitude: float, date: datetime) -> Optional[WeatherConditions]:
+    """
+    Fetch weather forecast for a specific location and date.
+    Uses OpenWeatherMap 5-day forecast API (free tier).
+    Note: For demo purposes, we use current real date for API calls since the simulated date may be outside API range.
+    """
+    # You can set your OpenWeatherMap API key as an environment variable
+    api_key = os.getenv('OPENWEATHER_API_KEY', 'demo_key')
+    
+    if api_key == 'demo_key':
+        # Return demo weather data if no API key is set
+        return get_demo_weather_data(date)
+    
+    # Check cache first
+    cached_weather = get_cached_weather(latitude, longitude, date)
+    if cached_weather:
+        print(f"Cache hit for weather data: {latitude}, {longitude}, {date}")
+        return cached_weather
+    
+    try:
+        url = f"https://api.openweathermap.org/data/2.5/forecast"
+        params = {
+            'lat': latitude,
+            'lon': longitude,
+            'appid': api_key,
+            'units': 'imperial'  # Fahrenheit, mph
+        }
+        
+        print(f"Fetching weather data from OpenWeatherMap for {latitude}, {longitude}")
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            print(f"OpenWeatherMap API response received, {len(data.get('list', []))} forecasts available")
+            
+            # Use the first available forecast (closest to current time)
+            # since the simulated date might be outside the 5-day API range
+            forecasts = data.get('list', [])
+            if forecasts:
+                weather_data = parse_weather_data(forecasts[0])
+                
+                # Cache the weather data
+                cache_weather_data(latitude, longitude, date, weather_data)
+                
+                return weather_data
+            
+    except httpx.HTTPError as e:
+        print(f"HTTP error fetching weather data: {e}")
+        print(f"Status code: {e.response.status_code if hasattr(e, 'response') else 'N/A'}")
+    except Exception as e:
+        print(f"Error fetching weather data: {e}")
+    
+    # Fallback to demo data
+    print("Falling back to demo weather data")
+    return get_demo_weather_data(date)
+
+def parse_weather_data(forecast_data: dict) -> WeatherConditions:
+    """Parse OpenWeatherMap forecast data into WeatherConditions model."""
+    main = forecast_data['main']
+    weather = forecast_data['weather'][0]
+    wind = forecast_data.get('wind', {})
+    clouds = forecast_data.get('clouds', {})
+    visibility = forecast_data.get('visibility', 10000)  # meters
+    pop = forecast_data.get('pop', 0)  # probability of precipitation
+    
+    temp_f = main['temp']
+    temp_c = (temp_f - 32) * 5/9
+    humidity = main['humidity']
+    cloud_cover = clouds.get('all', 0)
+    visibility_miles = visibility * 0.000621371  # convert meters to miles
+    wind_speed = wind.get('speed', 0)
+    wind_deg = wind.get('deg', 0)
+    
+    # Convert wind direction from degrees to cardinal direction
+    wind_direction = get_wind_direction(wind_deg)
+    
+    # Calculate weather score for stargazing (0-100, higher is better)
+    weather_score = calculate_weather_score(cloud_cover, humidity, visibility_miles, wind_speed, pop * 100)
+    
+    return WeatherConditions(
+        temperature_f=round(temp_f, 1),
+        temperature_c=round(temp_c, 1),
+        humidity=humidity,
+        cloud_cover=cloud_cover,
+        visibility_miles=round(visibility_miles, 1),
+        wind_speed_mph=round(wind_speed, 1),
+        wind_direction=wind_direction,
+        condition=weather['main'],
+        condition_description=weather['description'].title(),
+        weather_score=weather_score,
+        precipitation_chance=round(pop * 100)
+    )
+
+def get_demo_weather_data(date: datetime) -> WeatherConditions:
+    """Return demo weather data when API is not available."""
+    import random
+    
+    # Generate reasonable demo data based on date
+    random.seed(date.day + date.month)  # Consistent demo data for same date
+    
+    temp_f = random.uniform(45, 75)
+    cloud_cover = random.randint(10, 40)
+    humidity = random.randint(30, 70)
+    visibility = random.uniform(8, 15)
+    wind_speed = random.uniform(2, 12)
+    precip_chance = random.randint(5, 25)
+    
+    weather_score = calculate_weather_score(cloud_cover, humidity, visibility, wind_speed, precip_chance)
+    
+    return WeatherConditions(
+        temperature_f=round(temp_f, 1),
+        temperature_c=round((temp_f - 32) * 5/9, 1),
+        humidity=humidity,
+        cloud_cover=cloud_cover,
+        visibility_miles=round(visibility, 1),
+        wind_speed_mph=round(wind_speed, 1),
+        wind_direction="SW",
+        condition="Clear",
+        condition_description="Clear Sky",
+        weather_score=weather_score,
+        precipitation_chance=precip_chance
+    )
+
+def get_wind_direction(degrees: float) -> str:
+    """Convert wind direction from degrees to cardinal direction."""
+    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                 "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
+def calculate_weather_score(cloud_cover: int, humidity: int, visibility_miles: float, 
+                          wind_speed: float, precip_chance: int) -> float:
+    """
+    Calculate a weather score for stargazing conditions (0-100, higher is better).
+    
+    Factors:
+    - Cloud cover (most important): clear skies are essential
+    - Humidity: affects atmospheric clarity
+    - Visibility: important for seeing faint objects
+    - Wind speed: affects telescope stability
+    - Precipitation chance: rain/snow prevents stargazing
+    """
+    # Cloud cover score (0-40 points): less clouds = better
+    cloud_score = max(0, 40 - (cloud_cover * 0.4))
+    
+    # Humidity score (0-20 points): lower humidity = better
+    humidity_score = max(0, 20 - (humidity * 0.2))
+    
+    # Visibility score (0-20 points): higher visibility = better
+    visibility_score = min(20, visibility_miles * 2)
+    
+    # Wind score (0-10 points): moderate wind is okay, too much is bad
+    if wind_speed <= 5:
+        wind_score = 10
+    elif wind_speed <= 15:
+        wind_score = 10 - ((wind_speed - 5) * 0.5)
     else:
-        return "Poor conditions - Only bright objects visible"
+        wind_score = 0
+    
+    # Precipitation score (0-10 points): no precipitation = better
+    precip_score = max(0, 10 - (precip_chance * 0.1))
+    
+    total_score = cloud_score + humidity_score + visibility_score + wind_score + precip_score
+    return round(total_score, 1)
+
+def get_conditions_description(moon_illumination: float, visibility_score: float) -> str:
+    """Generate a human-readable description of stargazing conditions."""
+    if visibility_score >= 80:
+        base_desc = "Excellent stargazing conditions"
+    elif visibility_score >= 60:
+        base_desc = "Good stargazing conditions"
+    elif visibility_score >= 40:
+        base_desc = "Fair stargazing conditions"
+    elif visibility_score >= 20:
+        base_desc = "Poor stargazing conditions"
+    else:
+        base_desc = "Very poor stargazing conditions"
+    
+    # Add moon phase context
+    if moon_illumination < 10:
+        moon_desc = " with new moon providing dark skies"
+    elif moon_illumination < 30:
+        moon_desc = " with minimal moonlight interference"
+    elif moon_illumination < 70:
+        moon_desc = " with moderate moonlight"
+    else:
+        moon_desc = " with bright moonlight limiting faint object visibility"
+    
+    return base_desc + moon_desc
 
 @app.get("/")
 async def root():
@@ -373,6 +640,11 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
         # Data source is from the dark sky zones database
         bortle_source = f"Dark Sky Zone: {best_zone.name}" if best_zone else "Default (no zones found)"
         
+        # Get weather forecast for the best dark sky zone location (not user location)
+        weather_lat = best_zone.latitude if best_zone else location.latitude
+        weather_lon = best_zone.longitude if best_zone else location.longitude
+        weather_forecast = await get_weather_forecast(weather_lat, weather_lon, date)
+        
         conditions = AstronomicalConditions(
             moon_phase=moon_phase,
             moon_illumination=round(moon_illumination, 1),
@@ -384,7 +656,8 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
             conditions_description=conditions_desc,
             bortle_scale=best_zone_bortle,
             bortle_scale_estimated=False,  # This is from our curated database
-            bortle_scale_source=bortle_source
+            bortle_scale_source=bortle_source,
+            weather=weather_forecast
         )
         
         recommendation = StargazingRecommendation(
@@ -417,6 +690,9 @@ async def get_current_location_conditions(location: LocationInput):
     
     bortle_source = "Estimated based on location" if is_estimated else "Clear Outside API"
     
+    # Get weather forecast for current conditions
+    weather_forecast = await get_weather_forecast(location.latitude, location.longitude, current_date)
+    
     conditions = AstronomicalConditions(
         moon_phase=moon_phase,
         moon_illumination=round(moon_illumination, 1),
@@ -428,7 +704,8 @@ async def get_current_location_conditions(location: LocationInput):
         conditions_description=conditions_desc,
         bortle_scale=user_bortle_scale,
         bortle_scale_estimated=is_estimated,
-        bortle_scale_source=bortle_source
+        bortle_scale_source=bortle_source,
+        weather=weather_forecast
     )
     
     return {
@@ -475,6 +752,31 @@ async def test_bortle_scale(latitude: float, longitude: float):
             "latitude": latitude,
             "longitude": longitude
         }
+
+@app.get("/weather-forecast/{latitude}/{longitude}")
+async def get_weather_forecast_endpoint(latitude: float, longitude: float, days: int = 5):
+    """Get weather forecast for a specific location and number of days."""
+    if days < 1 or days > 5:
+        raise HTTPException(status_code=400, detail="Days must be between 1 and 5")
+    
+    forecasts = []
+    current_date = datetime.now()
+    
+    for i in range(days):
+        forecast_date = current_date + timedelta(days=i)
+        weather = await get_weather_forecast(latitude, longitude, forecast_date)
+        
+        if weather:
+            forecasts.append({
+                "date": forecast_date.strftime('%Y-%m-%d'),
+                "weather": weather
+            })
+    
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "forecasts": forecasts
+    }
 
 def get_bortle_description(bortle_scale: int) -> str:
     """Get a human-readable description of the Bortle scale."""

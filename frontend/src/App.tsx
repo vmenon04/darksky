@@ -3,11 +3,12 @@ import { LocationInput } from './components/LocationInput';
 import { DarkSkyZoneCard } from './components/DarkSkyZoneCard';
 import { RecommendationCard } from './components/RecommendationCard';
 import { StarsBackground } from './components/StarsBackground';
-import { findDarkSkyZones, getStargazingRecommendations } from './api';
-import { Location, DarkSkyZone, StargazingRecommendation } from './types';
-import { Star, Moon, Calendar, MapPin, Github, Coffee, ArrowUpDown } from 'lucide-react';
+import { findDarkSkyZones, getStargazingRecommendations, getWeatherForecast } from './api';
+import { Location, DarkSkyZone, StargazingRecommendation, WeatherConditions } from './types';
+import { Star, Moon, Calendar, MapPin, Github, Coffee, ArrowUpDown, Cloud } from 'lucide-react';
 
 type SortOption = 'distance' | 'bortle' | 'name';
+type TabOption = 'zones' | 'recommendations';
 
 function App() {
   const [location, setLocation] = useState<Location | null>(null);
@@ -16,7 +17,7 @@ function App() {
   const [recommendations, setRecommendations] = useState<StargazingRecommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'zones' | 'recommendations'>('zones');
+  const [activeTab, setActiveTab] = useState<TabOption>('zones');
   const [sortBy, setSortBy] = useState<SortOption>('distance');
   const [displayLimit, setDisplayLimit] = useState<number>(5);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -175,7 +176,7 @@ function App() {
                   }`}
                 >
                   <Calendar size={16} />
-                  <span>Stargazing Times</span>
+                  <span>Best Stargazing Times</span>
                 </button>
               </div>
 
@@ -344,6 +345,44 @@ function App() {
                                 <span>View All Zones</span>
                               </button>
                             )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Weather Overview */}
+                      {recommendations.length > 0 && recommendations.some(r => r.conditions.weather) && (
+                        <div className="glass-card p-4 mb-6">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Cloud className="text-cosmic-blue" size={16} />
+                            <h4 className="text-sm font-medium text-white">Weather Overview</h4>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {recommendations.slice(0, 4).map((rec, index) => (
+                              rec.conditions.weather && (
+                                <div key={rec.date} className="text-center">
+                                  <div className="text-xs text-gray-400 mb-1">
+                                    {new Date(rec.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                  </div>
+                                  <div className="text-lg font-semibold text-white mb-1">
+                                    {Math.round(rec.conditions.weather.temperature_f)}°F
+                                  </div>
+                                  <div className="text-xs text-gray-300 mb-2">
+                                    {rec.conditions.weather.condition_description}
+                                  </div>
+                                  <div className={`text-xs font-semibold px-2 py-1 rounded ${
+                                    rec.conditions.weather.weather_score >= 70 ? 'bg-green-500/20 text-green-400' :
+                                    rec.conditions.weather.weather_score >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                                    rec.conditions.weather.weather_score >= 30 ? 'bg-orange-500/20 text-orange-400' : 
+                                    'bg-red-500/20 text-red-400'
+                                  }`}>
+                                    {rec.conditions.weather.weather_score}/100
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {rec.conditions.weather.cloud_cover}% clouds
+                                  </div>
+                                </div>
+                              )
+                            ))}
                           </div>
                         </div>
                       )}

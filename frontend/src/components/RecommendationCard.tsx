@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Star, Eye, Clock, Sunrise, Sunset, AlertTriangle, MapPin } from 'lucide-react';
+import { Calendar, Star, Eye, Clock, Sunrise, Sunset, AlertTriangle, MapPin, Cloud, Thermometer, Droplets, Wind } from 'lucide-react';
 import { StargazingRecommendation } from '../types';
+import { WeatherCard } from './WeatherCard';
 
 interface RecommendationCardProps {
   recommendation: StargazingRecommendation;
@@ -90,7 +91,7 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
       )}
 
       <div className="flex items-start justify-between mb-4">
-        <div>
+        <div className="flex-1">
           <h3 className="text-lg font-bold text-white mb-1">{formattedDate}</h3>
           <div className="flex items-center space-x-2 text-sm text-gray-300 mb-1">
             <Calendar size={14} />
@@ -103,7 +104,8 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3">
+        
+        <div className="flex items-center space-x-4 ml-4">
           {/* Bortle Scale Display */}
           <div className="text-center">
             <div className="flex items-center justify-center space-x-1 mb-1">
@@ -199,6 +201,64 @@ export const RecommendationCard: React.FC<RecommendationCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Weather Information Section - Redesigned */}
+      {conditions.weather && (
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Cloud className="w-4 h-4 text-cosmic-blue" />
+              <span className="text-sm font-medium text-white">Weather at {conditions.bortle_scale_source?.replace('Dark Sky Zone: ', '') || 'Location'}</span>
+            </div>
+            <div className={`text-sm font-semibold px-2 py-1 rounded ${
+              conditions.weather.weather_score >= 70 ? 'bg-green-500/20 text-green-400' :
+              conditions.weather.weather_score >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+              conditions.weather.weather_score >= 30 ? 'bg-orange-500/20 text-orange-400' : 
+              'bg-red-500/20 text-red-400'
+            }`}>
+              {conditions.weather.weather_score}/100
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Temperature:</span>
+                <span className="text-white">{Math.round(conditions.weather.temperature_f)}°F</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Condition:</span>
+                <span className="text-white">{conditions.weather.condition_description}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Cloud Cover:</span>
+                <span className="text-white">{conditions.weather.cloud_cover}%</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Humidity:</span>
+                <span className="text-white">{conditions.weather.humidity}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Wind:</span>
+                <span className="text-white">{conditions.weather.wind_speed_mph} mph {conditions.weather.wind_direction}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Visibility:</span>
+                <span className="text-white">{conditions.weather.visibility_miles.toFixed(1)} mi</span>
+              </div>
+            </div>
+          </div>
+          
+          {conditions.weather.precipitation_chance > 0 && (
+            <div className="mt-2 text-sm text-orange-300">
+              ⚠️ {conditions.weather.precipitation_chance}% chance of precipitation
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
