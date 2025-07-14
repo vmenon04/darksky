@@ -632,10 +632,9 @@ def get_conditions_description(moon_illumination: float, visibility_score: float
 async def root():
     return {"message": "Dark Sky Zone Finder API", "version": "1.0.0"}
 
-@app.post("/find-dark-sky-zones")
-@limiter.limit("30/minute")  # 30 requests per minute per IP
-async def find_dark_sky_zones(request: Request, location: LocationInput, limit: int = 0):
-    """Find the closest dark sky zones to a given location."""
+# Internal function without rate limiting for internal calls
+async def _find_dark_sky_zones_internal(location: LocationInput, limit: int = 0):
+    """Internal function to find the closest dark sky zones to a given location."""
     user_location = (location.latitude, location.longitude)
     
     # Calculate distances to all dark sky zones
@@ -669,6 +668,12 @@ async def find_dark_sky_zones(request: Request, location: LocationInput, limit: 
     
     return {"dark_sky_zones": closest_zones}
 
+@app.post("/find-dark-sky-zones")
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def find_dark_sky_zones(request: Request, location: LocationInput, limit: int = 0):
+    """Find the closest dark sky zones to a given location."""
+    return await _find_dark_sky_zones_internal(location, limit)
+
 @app.post("/stargazing-recommendations")
 @limiter.limit("20/minute")  # 20 requests per minute per IP
 async def get_stargazing_recommendations(request: Request, location: LocationInput, zone_name: Optional[str] = None, days: int = 7):
@@ -679,7 +684,7 @@ async def get_stargazing_recommendations(request: Request, location: LocationInp
     elif days > 14:
         days = 14
     # Get closest dark sky zones first
-    zones_response = await find_dark_sky_zones(location)
+    zones_response = await _find_dark_sky_zones_internal(location)
     closest_zones = zones_response["dark_sky_zones"]
     
     # If a specific zone is requested, find it; otherwise use the closest
@@ -805,7 +810,8 @@ async def health_check():
     return {"status": "healthy"}
 
 @app.get("/bortle-scale/{latitude}/{longitude}")
-async def get_bortle_scale_endpoint(latitude: float, longitude: float):
+@limiter.limit("60/minute")  # 60 requests per minute per IP
+async def get_bortle_scale_endpoint(request: Request, latitude: float, longitude: float):
     """Get the current Bortle scale for a specific location."""
     bortle_scale, is_estimated = await get_bortle_scale_from_location(latitude, longitude)
     
@@ -820,7 +826,8 @@ async def get_bortle_scale_endpoint(latitude: float, longitude: float):
     }
 
 @app.get("/test-bortle/{latitude}/{longitude}")
-async def test_bortle_scale(latitude: float, longitude: float):
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def test_bortle_scale(request: Request, latitude: float, longitude: float):
     """Test endpoint to debug Bortle scale fetching."""
     try:
         bortle_scale, is_estimated = await get_bortle_scale_from_location(latitude, longitude)
@@ -840,7 +847,8 @@ async def test_bortle_scale(latitude: float, longitude: float):
         }
 
 @app.get("/weather-forecast/{latitude}/{longitude}")
-async def get_weather_forecast_endpoint(latitude: float, longitude: float, days: int = 5):
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def get_weather_forecast_endpoint(request: Request, latitude: float, longitude: float, days: int = 5):
     """Get weather forecast for a specific location and number of days."""
     if days < 1 or days > 5:
         raise HTTPException(status_code=400, detail="Days must be between 1 and 5")
