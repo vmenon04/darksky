@@ -400,11 +400,11 @@ async def get_weather_forecast(latitude: float, longitude: float, date: datetime
             
             print(f"OpenWeatherMap API response received, {len(data.get('list', []))} forecasts available")
             
-            # Use the first available forecast (closest to current time)
-            # since the simulated date might be outside the 5-day API range
+            # Find the forecast closest to the requested date
             forecasts = data.get('list', [])
             if forecasts:
-                weather_data = parse_weather_data(forecasts[0])
+                best_forecast = find_closest_forecast(forecasts, date)
+                weather_data = parse_weather_data(best_forecast)
                 
                 # Cache the weather data
                 cache_weather_data(latitude, longitude, date, weather_data)
@@ -463,14 +463,20 @@ def get_demo_weather_data(date: datetime) -> WeatherConditions:
     import random
     
     # Generate reasonable demo data based on date
-    random.seed(date.day + date.month)  # Consistent demo data for same date
+    # Use year, month, and day to ensure different weather for different dates
+    random.seed(date.year * 10000 + date.month * 100 + date.day)
     
     temp_f = random.uniform(45, 75)
-    cloud_cover = random.randint(10, 40)
-    humidity = random.randint(30, 70)
-    visibility = random.uniform(8, 15)
-    wind_speed = random.uniform(2, 12)
-    precip_chance = random.randint(5, 25)
+    cloud_cover = random.randint(10, 60)
+    humidity = random.randint(30, 80)
+    visibility = random.uniform(6, 15)
+    wind_speed = random.uniform(2, 15)
+    precip_chance = random.randint(0, 40)
+    
+    # Add some variety to conditions
+    conditions = ["Clear", "Partly Cloudy", "Mostly Clear", "Few Clouds"]
+    descriptions = ["Clear Sky", "Partly Cloudy", "Mostly Clear", "Few Clouds"]
+    condition_idx = random.randint(0, len(conditions) - 1)
     
     weather_score = calculate_weather_score(cloud_cover, humidity, visibility, wind_speed, precip_chance)
     
@@ -481,9 +487,9 @@ def get_demo_weather_data(date: datetime) -> WeatherConditions:
         cloud_cover=cloud_cover,
         visibility_miles=round(visibility, 1),
         wind_speed_mph=round(wind_speed, 1),
-        wind_direction="SW",
-        condition="Clear",
-        condition_description="Clear Sky",
+        wind_direction=random.choice(["N", "NE", "E", "SE", "S", "SW", "W", "NW"]),
+        condition=conditions[condition_idx],
+        condition_description=descriptions[condition_idx],
         weather_score=weather_score,
         precipitation_chance=precip_chance
     )
@@ -668,7 +674,17 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
         
         recommendations.append(recommendation)
     
-    recommendations.sort(key=lambda x: x.conditions.visibility_score, reverse=True)
+    # Sort recommendations by combined score: visibility + weather
+    # Visibility score: 0-100 (astronomy conditions)
+    # Weather score: 0-100 (weather conditions)
+    # Combined with 60% astronomy, 40% weather weighting
+    def calculate_combined_score(rec):
+        astronomy_score = rec.conditions.visibility_score
+        weather_score = rec.conditions.weather.weather_score if rec.conditions.weather else 50  # Default if no weather
+        combined_score = (astronomy_score * 0.6) + (weather_score * 0.4)
+        return combined_score
+    
+    recommendations.sort(key=calculate_combined_score, reverse=True)
     
     return {"recommendations": recommendations}
 
@@ -792,6 +808,36 @@ def get_bortle_description(bortle_scale: int) -> str:
         9: "Inner-city sky"
     }
     return descriptions.get(bortle_scale, "Unknown")
+
+def find_closest_forecast(forecasts: list, target_date: datetime) -> dict:
+    """Find the forecast entry closest to the target date."""
+    from datetime import datetime
+    
+    # If target date is outside the forecast range, use edge cases
+    forecast_dates = []
+    for forecast in forecasts:
+        forecast_dt = datetime.fromtimestamp(forecast['dt'])
+        forecast_dates.append((forecast, forecast_dt))
+    
+    if not forecast_dates:
+        return forecasts[0]
+    
+    # Find the forecast with the smallest time difference
+    closest_forecast = None
+    smallest_diff = float('inf')
+    
+    for forecast, forecast_dt in forecast_dates:
+        # Compare just the date parts for daily forecasts
+        target_date_only = target_date.replace(hour=12, minute=0, second=0, microsecond=0)
+        forecast_date_only = forecast_dt.replace(hour=12, minute=0, second=0, microsecond=0)
+        
+        diff = abs((target_date_only - forecast_date_only).total_seconds())
+        
+        if diff < smallest_diff:
+            smallest_diff = diff
+            closest_forecast = forecast
+    
+    return closest_forecast or forecasts[0]
 
 if __name__ == "__main__":
     import uvicorn
