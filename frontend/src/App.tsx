@@ -115,7 +115,7 @@ function App() {
           <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Star className="text-cosmic-blue animate-float" size={48} />
-              <h1 className="text-5xl font-bold cosmic-gradient bg-clip-text text-transparent">
+              <h1 className="text-5xl font-bold cosmic-gradient bg-clip-text text-transparent leading-tight py-2">
                 Stargazr
               </h1>
             </div>
