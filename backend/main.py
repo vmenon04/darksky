@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from pydantic import BaseModel, Field
 import ephem
 from datetime import datetime, timedelta
 from geopy.distance import geodesic
@@ -13,6 +14,9 @@ import re
 from dotenv import load_dotenv
 import hashlib
 import time
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Load environment variables
 load_dotenv()
@@ -24,9 +28,36 @@ MAX_CACHE_SIZE = 1000  # Maximum number of cached entries
 
 app = FastAPI(title="Stargazr API", version="1.0.0")
 
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+# Custom rate limit exceeded handler
+async def custom_rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Custom handler for rate limit exceeded errors."""
+    response = HTTPException(
+        status_code=429,
+        detail={
+            "error": "Rate limit exceeded",
+            "message": "Too many requests. Please wait a moment before trying again.",
+            "retry_after": exc.retry_after,
+            "limit": str(exc.detail).split()[0] if exc.detail else "Unknown"
+        }
+    )
+    return response
+
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_exceeded_handler)
+
 # Get allowed origins from environment variable, with fallback for development
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 allowed_origins = [origin.strip() for origin in allowed_origins]  # Clean whitespace
+
+# Get trusted hosts from environment variable
+trusted_hosts = os.getenv("TRUSTED_HOSTS", "localhost,127.0.0.1").split(",")
+trusted_hosts = [host.strip() for host in trusted_hosts]
+
+# Security middleware
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,10 +67,42 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
 )
 
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    # Content Security Policy (CSP)
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.openweathermap.org https://clearoutside.com; "
+        "font-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self';"
+    )
+    response.headers["Content-Security-Policy"] = csp
+    
+    # HSTS (HTTP Strict Transport Security) - only in production
+    if os.getenv("ENVIRONMENT") == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    return response
+
 class LocationInput(BaseModel):
-    latitude: float
-    longitude: float
-    name: Optional[str] = None
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude between -90 and 90 degrees")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude between -180 and 180 degrees")
+    name: Optional[str] = Field(None, max_length=100, description="Optional location name")
 
 class WeatherConditions(BaseModel):
     temperature_f: float
@@ -570,7 +633,8 @@ async def root():
     return {"message": "Dark Sky Zone Finder API", "version": "1.0.0"}
 
 @app.post("/find-dark-sky-zones")
-async def find_dark_sky_zones(location: LocationInput, limit: int = 0):
+@limiter.limit("30/minute")  # 30 requests per minute per IP
+async def find_dark_sky_zones(request: Request, location: LocationInput, limit: int = 0):
     """Find the closest dark sky zones to a given location."""
     user_location = (location.latitude, location.longitude)
     
@@ -606,7 +670,8 @@ async def find_dark_sky_zones(location: LocationInput, limit: int = 0):
     return {"dark_sky_zones": closest_zones}
 
 @app.post("/stargazing-recommendations")
-async def get_stargazing_recommendations(location: LocationInput, zone_name: Optional[str] = None, days: int = 7):
+@limiter.limit("20/minute")  # 20 requests per minute per IP
+async def get_stargazing_recommendations(request: Request, location: LocationInput, zone_name: Optional[str] = None, days: int = 7):
     """Get stargazing recommendations for the specified number of days (default: 7, max: 14)."""
     # Validate days parameter
     if days < 1:
@@ -693,7 +758,8 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
     return {"recommendations": recommendations}
 
 @app.post("/current-location-conditions")
-async def get_current_location_conditions(location: LocationInput):
+@limiter.limit("60/minute")  # 60 requests per minute per IP (higher limit for current conditions)
+async def get_current_location_conditions(request: Request, location: LocationInput):
     """Get current stargazing conditions for the user's exact location."""
     current_date = datetime.now()
     

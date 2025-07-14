@@ -10,6 +10,21 @@ const api = axios.create({
   },
 });
 
+// Helper function to handle API errors
+const handleApiError = (error: any, defaultMessage: string): never => {
+  if (error.response?.status === 429) {
+    const retryAfter = error.response.data?.detail?.retry_after || 60;
+    throw new Error(`Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`);
+  }
+  
+  if (error.response?.data?.detail?.message) {
+    throw new Error(error.response.data.detail.message);
+  }
+  
+  console.error('API Error:', error);
+  throw new Error(defaultMessage);
+};
+
 export const findDarkSkyZones = async (location: Location, limit: number = 5): Promise<DarkSkyZone[]> => {
   try {
     const response = await api.post('/find-dark-sky-zones', location, {
@@ -17,8 +32,7 @@ export const findDarkSkyZones = async (location: Location, limit: number = 5): P
     });
     return response.data.dark_sky_zones;
   } catch (error) {
-    console.error('Error finding dark sky zones:', error);
-    throw new Error('Failed to find dark sky zones');
+    return handleApiError(error, 'Failed to find dark sky zones');
   }
 };
 
@@ -34,8 +48,7 @@ export const getStargazingRecommendations = async (location: Location, zoneName?
     });
     return response.data.recommendations;
   } catch (error) {
-    console.error('Error getting stargazing recommendations:', error);
-    throw new Error('Failed to get stargazing recommendations');
+    return handleApiError(error, 'Failed to get stargazing recommendations');
   }
 };
 
@@ -46,8 +59,7 @@ export const getWeatherForecast = async (location: Location, days: number = 5): 
     });
     return response.data.forecasts;
   } catch (error) {
-    console.error('Error getting weather forecast:', error);
-    throw new Error('Failed to get weather forecast');
+    return handleApiError(error, 'Failed to get weather forecast');
   }
 };
 
