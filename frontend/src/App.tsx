@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { LocationInput } from './components/LocationInput';
 import { DarkSkyZoneCard } from './components/DarkSkyZoneCard';
 import { RecommendationCard } from './components/RecommendationCard';
@@ -471,6 +472,7 @@ function App() {
           </div>
         </footer>
       </div>
+      <Analytics />
     </div>
   );
 }
