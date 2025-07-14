@@ -217,13 +217,15 @@ function App() {
                       
                       return (
                         <div
-                          key={shouldAnimate ? `${zone.name}-${animationKey}` : zone.name}
+                          key={zone.name}
                           className={shouldAnimate ? "animate-fade-in-up" : ""}
                           style={shouldAnimate ? {
                             animationDelay: `${(previousDisplayLimit === 0 ? index : index - previousDisplayLimit) * 100}ms`,
                             animationFillMode: 'both'
                           } : {}}
-                        >                        <DarkSkyZoneCard
+                        >
+                        <DarkSkyZoneCard
+                          key={animationKey.startsWith('sort-') ? `${zone.name}-${animationKey}` : zone.name}
                           zone={zone}
                           rank={index + 1}
                           userCurrentLocation={userCurrentLocation}
