@@ -10,9 +10,11 @@ const api = axios.create({
   },
 });
 
-export const findDarkSkyZones = async (location: Location): Promise<DarkSkyZone[]> => {
+export const findDarkSkyZones = async (location: Location, limit: number = 5): Promise<DarkSkyZone[]> => {
   try {
-    const response = await api.post('/find-dark-sky-zones', location);
+    const response = await api.post('/find-dark-sky-zones', location, {
+      params: { limit }
+    });
     return response.data.dark_sky_zones;
   } catch (error) {
     console.error('Error finding dark sky zones:', error);

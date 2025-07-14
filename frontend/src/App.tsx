@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { LocationInput } from './components/LocationInput';
 import { DarkSkyZoneCard } from './components/DarkSkyZoneCard';
 import { RecommendationCard } from './components/RecommendationCard';
 import { StarsBackground } from './components/StarsBackground';
 import { findDarkSkyZones, getStargazingRecommendations } from './api';
 import { Location, DarkSkyZone, StargazingRecommendation } from './types';
-import { Search, Moon, Star, Calendar, MapPin, Github, Coffee } from 'lucide-react';
+import { Search, Moon, Star, Calendar, MapPin, Github, Coffee, ArrowUpDown } from 'lucide-react';
+
+type SortOption = 'distance' | 'bortle' | 'name';
 
 function App() {
   const [location, setLocation] = useState<Location | null>(null);
@@ -15,6 +17,32 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'zones' | 'recommendations'>('zones');
+  const [sortBy, setSortBy] = useState<SortOption>('distance');
+  const [displayLimit, setDisplayLimit] = useState<number>(5);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [animationKey, setAnimationKey] = useState<string>('initial');
+  const [previousDisplayLimit, setPreviousDisplayLimit] = useState<number>(5);
+
+  // Sort dark sky zones based on selected criteria and limit display
+  const sortedDarkSkyZones = useMemo(() => {
+    if (darkSkyZones.length === 0) return [];
+    
+    const sorted = [...darkSkyZones].sort((a, b) => {
+      switch (sortBy) {
+        case 'distance':
+          return a.distance_miles - b.distance_miles;
+        case 'bortle':
+          return a.bortle_scale - b.bortle_scale;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
+    
+    // Only return the first N zones based on display limit
+    return sorted.slice(0, displayLimit);
+  }, [darkSkyZones, sortBy, displayLimit]);
 
   const handleLocationSubmit = async (newLocation: Location, isCurrentLocation?: boolean) => {
     setLocation(newLocation);
@@ -24,12 +52,16 @@ function App() {
       setUserCurrentLocation(newLocation);
     }
     
+    // Reset display limit for new search
+    setDisplayLimit(5);
+    setPreviousDisplayLimit(0);
+    setAnimationKey(`search-${Date.now()}`);
     setLoading(true);
     setError(null);
 
     try {
       const [zonesData, recommendationsData] = await Promise.all([
-        findDarkSkyZones(newLocation),
+        findDarkSkyZones(newLocation, 0), // Load ALL available zones (0 = no limit)
         getStargazingRecommendations(newLocation)
       ]);
 
@@ -40,6 +72,16 @@ function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    setPreviousDisplayLimit(displayLimit);
+    // Simulate a small delay for better UX
+    setTimeout(() => {
+      setDisplayLimit(prev => prev + 5);
+      setLoadingMore(false);
+    }, 300);
   };
 
   return (
@@ -117,21 +159,82 @@ function App() {
               </div>
 
               {activeTab === 'zones' && darkSkyZones.length > 0 && (
-                <div>
-                  <div className="flex items-center space-x-2 mb-6">
-                    <Star className="text-star-yellow" size={24} />
-                    <h2 className="text-2xl font-bold">Closest Dark Sky Zones</h2>
+                <div className="animate-fade-in">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-2">
+                      <Star className="text-star-yellow" size={24} />
+                      <h2 className="text-2xl font-bold">Dark Sky Zones</h2>
+                      <span className="text-sm text-gray-400 bg-white/10 px-2 py-1 rounded-full">
+                        Showing {sortedDarkSkyZones.length} of {darkSkyZones.length}
+                      </span>
+                    </div>
+                    
+                    {/* Sort Dropdown */}
+                    <div className="flex items-center space-x-2">
+                      <ArrowUpDown className="text-gray-400" size={16} />
+                      <select
+                        value={sortBy}
+                        onChange={(e) => {
+                          setSortBy(e.target.value as SortOption);
+                          setDisplayLimit(5); // Reset to show top 5 when sort changes
+                          setPreviousDisplayLimit(0);
+                          setAnimationKey(`sort-${Date.now()}`);
+                        }}
+                        className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm"
+                      >
+                        <option value="distance" className="bg-gray-800">Distance (nearest)</option>
+                        <option value="bortle" className="bg-gray-800">Sky Quality (darkest)</option>
+                        <option value="name" className="bg-gray-800">Name (A-Z)</option>
+                      </select>
+                    </div>
                   </div>
+                  
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    {darkSkyZones.map((zone, index) => (
-                      <DarkSkyZoneCard
-                        key={zone.name}
-                        zone={zone}
-                        rank={index + 1}
-                        userCurrentLocation={userCurrentLocation}
-                      />
-                    ))}
+                    {sortedDarkSkyZones.map((zone, index) => {
+                      const isNewCard = index >= previousDisplayLimit;
+                      const shouldAnimate = previousDisplayLimit === 0 || isNewCard;
+                      
+                      return (
+                        <div
+                          key={shouldAnimate ? `${zone.name}-${animationKey}` : zone.name}
+                          className={shouldAnimate ? "animate-fade-in-up" : ""}
+                          style={shouldAnimate ? {
+                            animationDelay: `${(previousDisplayLimit === 0 ? index : index - previousDisplayLimit) * 100}ms`,
+                            animationFillMode: 'both'
+                          } : {}}
+                        >
+                          <DarkSkyZoneCard
+                            zone={zone}
+                            rank={index + 1}
+                            userCurrentLocation={userCurrentLocation}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
+                  
+                  {/* Show More Button - only show if there are more zones to display */}
+                  {displayLimit < darkSkyZones.length && (
+                    <div className="mt-8 text-center">
+                      <button
+                        onClick={handleLoadMore}
+                        disabled={loadingMore}
+                        className="glass-card px-6 py-3 hover:bg-white/15 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loadingMore ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cosmic-blue"></div>
+                            <span>Loading more zones...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Star className="text-star-yellow" size={16} />
+                            <span>Show More Zones</span>
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -293,7 +293,7 @@ async def root():
     return {"message": "Dark Sky Zone Finder API", "version": "1.0.0"}
 
 @app.post("/find-dark-sky-zones")
-async def find_dark_sky_zones(location: LocationInput):
+async def find_dark_sky_zones(location: LocationInput, limit: int = 0):
     """Find the closest dark sky zones to a given location."""
     user_location = (location.latitude, location.longitude)
     
@@ -322,8 +322,9 @@ async def find_dark_sky_zones(location: LocationInput):
         )
         zones_with_distance.append(dark_sky_zone)
     
-    # Sort by distance and return top 5
-    closest_zones = sorted(zones_with_distance, key=lambda x: x.distance_miles)[:5]
+    # Sort by distance and return requested number of zones (0 = all zones)
+    sorted_zones = sorted(zones_with_distance, key=lambda x: x.distance_miles)
+    closest_zones = sorted_zones if limit == 0 else sorted_zones[:limit]
     
     return {"dark_sky_zones": closest_zones}
 
