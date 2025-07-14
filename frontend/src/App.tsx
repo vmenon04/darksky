@@ -197,7 +197,7 @@ function App() {
 
                 {activeTab === 'zones' && darkSkyZones.length > 0 && (
                   <div className="animate-fade-in">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-6 gap-4">
                       <div className="flex items-center space-x-2">
                         <Star className="text-star-yellow" size={24} />
                         <h2 className="text-2xl font-bold">Dark Sky Zones</h2>
@@ -208,7 +208,7 @@ function App() {
                       </div>
                       
                       {/* Controls Container */}
-                      <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                         {/* Sort Dropdown */}
                         <div className="flex items-center space-x-2">
                           <ArrowUpDown className="text-gray-400" size={16} />
@@ -220,7 +220,7 @@ function App() {
                               setPreviousDisplayLimit(0);
                               setAnimationKey(`sort-${Date.now()}`);
                             }}
-                            className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm min-w-[160px]"
+                            className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm w-full sm:min-w-[160px]"
                           >
                             <option value="distance" className="bg-gray-800">Distance (nearest)</option>
                             <option value="bortle" className="bg-gray-800">Sky Quality (darkest)</option>
@@ -252,7 +252,7 @@ function App() {
                                 setDisplayLimit(5);
                                 setPreviousDisplayLimit(0);
                               }}
-                              className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm min-w-[140px]"
+                              className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm w-full sm:min-w-[140px]"
                             >
                               <option value="all" className="bg-gray-800">All Qualities</option>
                               <option value="pristine" className="bg-gray-800">Pristine (1-2)</option>
