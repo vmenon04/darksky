@@ -93,9 +93,9 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, us
             <div className="w-8 h-8 bg-cosmic-blue rounded-full flex items-center justify-center text-sm font-bold">
               {rank}
             </div>
-            <div className="min-w-0 flex-1 h-12 flex flex-col justify-center">
-              <h3 className="text-xl font-bold text-white line-clamp-1">{zone.name}</h3>
-              <p className="text-cosmic-blue text-sm line-clamp-1">{zone.designation_type}</p>
+            <div className={`min-w-0 flex-1 flex flex-col justify-center transition-all duration-300 ${isExpanded ? 'min-h-12' : 'h-12'}`}>
+              <h3 className={`text-xl font-bold text-white transition-all duration-300 ${isExpanded ? '' : 'line-clamp-1'}`}>{zone.name}</h3>
+              <p className={`text-cosmic-blue text-sm transition-all duration-300 ${isExpanded ? '' : 'line-clamp-1'}`}>{zone.designation_type}</p>
             </div>
           </div>
           <div className="text-right ml-2 flex items-center space-x-2">
