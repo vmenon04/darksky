@@ -351,7 +351,7 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
     moon_calc_lat = best_zone.latitude if best_zone else location.latitude
     moon_calc_lon = best_zone.longitude if best_zone else location.longitude
     
-    for i in range(14):
+    for i in range(7):
         date = current_date + timedelta(days=i)
         
         # Calculate moon conditions using the best dark sky zone location

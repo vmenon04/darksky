@@ -260,7 +260,7 @@ function App() {
               )}
 
               {activeTab === 'recommendations' && recommendations.length > 0 && (
-                <div>
+                <div className="animate-fade-in">
                   <div className="flex items-center space-x-2 mb-6">
                     <Moon className="text-star-yellow" size={24} />
                     <h2 className="text-2xl font-bold">Best Stargazing Times</h2>
@@ -303,11 +303,19 @@ function App() {
                       
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {recommendations.map((recommendation, index) => (
-                          <RecommendationCard
-                            key={recommendation.date}
-                            recommendation={recommendation}
-                            isTopRecommendation={index === 0}
-                          />
+                          <div
+                            key={`${recommendation.date}-${selectedZoneForRecommendations || 'default'}`}
+                            className="animate-fade-in-up"
+                            style={{
+                              animationDelay: `${index * 150}ms`,
+                              animationFillMode: 'both'
+                            }}
+                          >
+                            <RecommendationCard
+                              recommendation={recommendation}
+                              isTopRecommendation={index === 0}
+                            />
+                          </div>
                         ))}
                       </div>
                     </>
