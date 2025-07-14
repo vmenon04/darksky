@@ -22,10 +22,15 @@ export const findDarkSkyZones = async (location: Location, limit: number = 5): P
   }
 };
 
-export const getStargazingRecommendations = async (location: Location, zoneName?: string): Promise<StargazingRecommendation[]> => {
+export const getStargazingRecommendations = async (location: Location, zoneName?: string, days: number = 7): Promise<StargazingRecommendation[]> => {
   try {
+    const params: any = { days };
+    if (zoneName) {
+      params.zone_name = zoneName;
+    }
+    
     const response = await api.post('/stargazing-recommendations', location, {
-      params: zoneName ? { zone_name: zoneName } : {}
+      params
     });
     return response.data.recommendations;
   } catch (error) {

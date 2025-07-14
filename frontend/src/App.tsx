@@ -24,6 +24,7 @@ function App() {
   const [previousDisplayLimit, setPreviousDisplayLimit] = useState<number>(5);
   const [selectedZoneForRecommendations, setSelectedZoneForRecommendations] = useState<string | null>(null);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [recommendationDays, setRecommendationDays] = useState<number>(7);
 
   // Sort dark sky zones based on selected criteria and limit display
   const sortedDarkSkyZones = useMemo(() => {
@@ -65,7 +66,7 @@ function App() {
     try {
       const [zonesData, recommendationsData] = await Promise.all([
         findDarkSkyZones(newLocation, 0), // Load ALL available zones (0 = no limit)
-        getStargazingRecommendations(newLocation)
+        getStargazingRecommendations(newLocation, undefined, recommendationDays)
       ]);
 
       setDarkSkyZones(zonesData);
@@ -94,7 +95,7 @@ function App() {
     setLoadingRecommendations(true);
     
     try {
-      const recommendationsData = await getStargazingRecommendations(location, zoneName || undefined);
+      const recommendationsData = await getStargazingRecommendations(location, zoneName || undefined, recommendationDays);
       setRecommendations(recommendationsData);
       setActiveTab('recommendations'); // Switch to recommendations tab AFTER data is loaded
     } catch (err) {
@@ -200,7 +201,7 @@ function App() {
                           setPreviousDisplayLimit(0);
                           setAnimationKey(`sort-${Date.now()}`);
                         }}
-                        className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm"
+                        className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent backdrop-blur-sm min-w-[160px]"
                       >
                         <option value="distance" className="bg-gray-800">Distance (nearest)</option>
                         <option value="bortle" className="bg-gray-800">Sky Quality (darkest)</option>
@@ -261,9 +262,53 @@ function App() {
 
               {activeTab === 'recommendations' && recommendations.length > 0 && (
                 <div className="animate-fade-in">
-                  <div className="flex items-center space-x-2 mb-6">
-                    <Moon className="text-star-yellow" size={24} />
-                    <h2 className="text-2xl font-bold">Best Stargazing Times</h2>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Moon className="text-star-yellow" size={24} />
+                      <h2 className="text-2xl font-bold">Best Stargazing Times</h2>
+                    </div>
+                    
+                    {/* Days Selector */}
+                    <div className="flex items-center space-x-2">
+                      <label htmlFor="days-selector" className="text-sm text-gray-300 whitespace-nowrap">
+                        Days ahead:
+                      </label>
+                      <select
+                        id="days-selector"
+                        value={recommendationDays}
+                        onChange={async (e) => {
+                          const newDays = parseInt(e.target.value);
+                          setRecommendationDays(newDays);
+                          // Reload recommendations with new days count
+                          if (location) {
+                            setLoadingRecommendations(true);
+                            
+                            // Add a small delay for smoother transition
+                            await new Promise(resolve => setTimeout(resolve, 150));
+                            
+                            try {
+                              const recommendationsData = await getStargazingRecommendations(
+                                location, 
+                                selectedZoneForRecommendations || undefined, 
+                                newDays
+                              );
+                              setRecommendations(recommendationsData);
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'An error occurred loading recommendations');
+                            } finally {
+                              setLoadingRecommendations(false);
+                            }
+                          }
+                        }}
+                        className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent hover:bg-white/15 transition-colors cursor-pointer min-w-[100px]"
+                      >
+                        <option value={3}>3 days</option>
+                        <option value={5}>5 days</option>
+                        <option value={7}>7 days</option>
+                        <option value={10}>10 days</option>
+                        <option value={14}>14 days</option>
+                      </select>
+                    </div>
                   </div>
                   
                   {loadingRecommendations ? (

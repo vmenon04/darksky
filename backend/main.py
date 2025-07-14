@@ -329,8 +329,13 @@ async def find_dark_sky_zones(location: LocationInput, limit: int = 0):
     return {"dark_sky_zones": closest_zones}
 
 @app.post("/stargazing-recommendations")
-async def get_stargazing_recommendations(location: LocationInput, zone_name: Optional[str] = None):
-    """Get stargazing recommendations for the next 7 days."""
+async def get_stargazing_recommendations(location: LocationInput, zone_name: Optional[str] = None, days: int = 7):
+    """Get stargazing recommendations for the specified number of days (default: 7, max: 14)."""
+    # Validate days parameter
+    if days < 1:
+        days = 1
+    elif days > 14:
+        days = 14
     # Get closest dark sky zones first
     zones_response = await find_dark_sky_zones(location)
     closest_zones = zones_response["dark_sky_zones"]
@@ -351,7 +356,7 @@ async def get_stargazing_recommendations(location: LocationInput, zone_name: Opt
     moon_calc_lat = best_zone.latitude if best_zone else location.latitude
     moon_calc_lon = best_zone.longitude if best_zone else location.longitude
     
-    for i in range(7):
+    for i in range(days):
         date = current_date + timedelta(days=i)
         
         # Calculate moon conditions using the best dark sky zone location
