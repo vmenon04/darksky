@@ -404,7 +404,7 @@ function App() {
                   <span>Buy Me a Coffee</span>
                 </a>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/vmenon04/darksky"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-1 hover:text-white transition-colors"
