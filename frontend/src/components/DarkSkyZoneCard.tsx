@@ -7,6 +7,7 @@ interface DarkSkyZoneCardProps {
   rank: number;
   userCurrentLocation?: Location | null;
   onViewStargazingTimes?: (zoneName: string) => void;
+  isLoadingRecommendations?: boolean;
 }
 
 const getBortleDescription = (scale: number): string => {
@@ -31,7 +32,7 @@ const getBortleColor = (scale: number): string => {
   return 'text-red-400';
 };
 
-export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, userCurrentLocation, onViewStargazingTimes }) => {
+export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, userCurrentLocation, onViewStargazingTimes, isLoadingRecommendations }) => {
   const [isLoadingApple, setIsLoadingApple] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -151,11 +152,20 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, us
                   e.stopPropagation();
                   onViewStargazingTimes(zone.name);
                 }}
-                className="w-full transition-all duration-200 flex items-center justify-center space-x-2 group px-3 py-2 rounded-lg border text-xs font-medium bg-star-yellow/20 hover:bg-star-yellow/30 border-star-yellow/50 text-star-yellow active:scale-95"
+                disabled={isLoadingRecommendations}
+                className={`w-full transition-all duration-200 flex items-center justify-center space-x-2 group px-3 py-2 rounded-lg border text-xs font-medium ${
+                  isLoadingRecommendations
+                    ? 'bg-star-yellow/10 border-star-yellow/30 text-star-yellow/50 cursor-not-allowed'
+                    : 'bg-star-yellow/20 hover:bg-star-yellow/30 border-star-yellow/50 text-star-yellow active:scale-95'
+                }`}
                 style={{ touchAction: 'manipulation' }}
               >
-                <Clock size={14} className="group-hover:scale-110 transition-transform" />
-                <span>View Stargazing Times</span>
+                {isLoadingRecommendations ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Clock size={14} className="group-hover:scale-110 transition-transform" />
+                )}
+                <span>{isLoadingRecommendations ? 'Loading Times...' : 'View Stargazing Times'}</span>
               </button>
             )}
             

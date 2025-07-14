@@ -92,11 +92,11 @@ function App() {
     
     setSelectedZoneForRecommendations(zoneName);
     setLoadingRecommendations(true);
-    setActiveTab('recommendations'); // Switch to recommendations tab
     
     try {
       const recommendationsData = await getStargazingRecommendations(location, zoneName || undefined);
       setRecommendations(recommendationsData);
+      setActiveTab('recommendations'); // Switch to recommendations tab AFTER data is loaded
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred loading recommendations');
     } finally {
@@ -227,6 +227,7 @@ function App() {
                           rank={index + 1}
                           userCurrentLocation={userCurrentLocation}
                           onViewStargazingTimes={handleZoneSelectionForRecommendations}
+                          isLoadingRecommendations={loadingRecommendations}
                         />
                         </div>
                       );
