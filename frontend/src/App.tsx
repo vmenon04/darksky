@@ -46,7 +46,7 @@ function App() {
     <div className="min-h-screen bg-starry-night text-white relative">
       <StarsBackground />
       
-      <div className="relative z-10">
+      <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
         <header className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
@@ -64,7 +64,8 @@ function App() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 pb-12">
+        <div className="flex-1">
+          <main className={`container mx-auto px-4 ${!location && !loading && !error && darkSkyZones.length === 0 && recommendations.length === 0 ? 'mb-2' : ''}`}>
           <LocationInput onLocationSubmit={handleLocationSubmit} loading={loading} />
 
           {error && (
@@ -164,12 +165,13 @@ function App() {
               </div>
             </div>
           )}
-        </main>
+          </main>
+        </div>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 py-8">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+        <footer className="border-t border-white/10">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
               <div className="flex items-center space-x-2">
                 <Search className="text-cosmic-blue" size={20} />
                 <span className="text-gray-300">Dark Sky Zone Finder</span>
