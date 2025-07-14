@@ -1,4 +1,4 @@
-# 🌌 Dark Sky Zone Finder
+# ⭐ Stargazr
 
 Find certified dark sky zones and optimal stargazing times.
 
@@ -8,7 +8,7 @@ Find certified dark sky zones and optimal stargazing times.
 🌙 Get stargazing recommendations  
 📱 Mobile-friendly interface  
 
-🔗 [darkskyfinder.vercel.app](https://darkskyfinder.vercel.app)
+🔗 [stargazr.org](https://stargazr.org)
 
 
 *Find your perfect night under the stars* ✨

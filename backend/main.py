@@ -11,7 +11,7 @@ import os
 import httpx
 import re
 
-app = FastAPI(title="Dark Sky Zone Finder API", version="1.0.0")
+app = FastAPI(title="Stargazr API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,

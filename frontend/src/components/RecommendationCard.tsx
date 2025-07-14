@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Moon, Star, Eye, Clock, Sunrise, Sunset, AlertTriangle, MapPin } from 'lucide-react';
+import { Calendar, Star, Eye, Clock, Sunrise, Sunset, AlertTriangle, MapPin } from 'lucide-react';
 import { StargazingRecommendation } from '../types';
 
 interface RecommendationCardProps {

@@ -5,7 +5,7 @@ import { RecommendationCard } from './components/RecommendationCard';
 import { StarsBackground } from './components/StarsBackground';
 import { findDarkSkyZones, getStargazingRecommendations } from './api';
 import { Location, DarkSkyZone, StargazingRecommendation } from './types';
-import { Search, Moon, Star, Calendar, MapPin, Github, Coffee, ArrowUpDown } from 'lucide-react';
+import { Star, Moon, Calendar, MapPin, Github, Coffee, ArrowUpDown } from 'lucide-react';
 
 type SortOption = 'distance' | 'bortle' | 'name';
 
@@ -114,9 +114,9 @@ function App() {
         <header className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-4">
-              <Search className="text-cosmic-blue animate-float" size={48} />
+              <Star className="text-cosmic-blue animate-float" size={48} />
               <h1 className="text-5xl font-bold cosmic-gradient bg-clip-text text-transparent">
-                Dark Sky Zone Finder
+                Stargazr
               </h1>
             </div>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto">
@@ -390,8 +390,8 @@ function App() {
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
               <div className="flex items-center space-x-2">
-                <Search className="text-cosmic-blue" size={20} />
-                <span className="text-gray-300">Dark Sky Zone Finder</span>
+                <Star className="text-cosmic-blue" size={20} />
+                <span className="text-gray-300">Stargazr</span>
               </div>
               <div className="flex items-center space-x-6 text-sm text-gray-400">
                 <a

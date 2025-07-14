@@ -1,7 +1,8 @@
 {
-  "name": "darksky-frontend",
+  "name": "stargazr-frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://stargazr.org",
   "dependencies": {
     "@types/node": "^16.18.68",
     "@types/react": "^18.2.42",

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Clock, Moon, Star, Eye, Navigation, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Clock, Eye, Navigation, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { DarkSkyZone, Location } from '../types';
 
 interface DarkSkyZoneCardProps {
