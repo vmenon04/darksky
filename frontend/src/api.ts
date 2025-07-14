@@ -22,9 +22,11 @@ export const findDarkSkyZones = async (location: Location, limit: number = 5): P
   }
 };
 
-export const getStargazingRecommendations = async (location: Location): Promise<StargazingRecommendation[]> => {
+export const getStargazingRecommendations = async (location: Location, zoneName?: string): Promise<StargazingRecommendation[]> => {
   try {
-    const response = await api.post('/stargazing-recommendations', location);
+    const response = await api.post('/stargazing-recommendations', location, {
+      params: zoneName ? { zone_name: zoneName } : {}
+    });
     return response.data.recommendations;
   } catch (error) {
     console.error('Error getting stargazing recommendations:', error);

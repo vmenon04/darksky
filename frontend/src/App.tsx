@@ -22,6 +22,8 @@ function App() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [animationKey, setAnimationKey] = useState<string>('initial');
   const [previousDisplayLimit, setPreviousDisplayLimit] = useState<number>(5);
+  const [selectedZoneForRecommendations, setSelectedZoneForRecommendations] = useState<string | null>(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   // Sort dark sky zones based on selected criteria and limit display
   const sortedDarkSkyZones = useMemo(() => {
@@ -56,6 +58,7 @@ function App() {
     setDisplayLimit(5);
     setPreviousDisplayLimit(0);
     setAnimationKey(`search-${Date.now()}`);
+    setSelectedZoneForRecommendations(null);
     setLoading(true);
     setError(null);
 
@@ -82,6 +85,23 @@ function App() {
       setDisplayLimit(prev => prev + 5);
       setLoadingMore(false);
     }, 300);
+  };
+
+  const handleZoneSelectionForRecommendations = async (zoneName: string | null) => {
+    if (!location) return;
+    
+    setSelectedZoneForRecommendations(zoneName);
+    setLoadingRecommendations(true);
+    setActiveTab('recommendations'); // Switch to recommendations tab
+    
+    try {
+      const recommendationsData = await getStargazingRecommendations(location, zoneName || undefined);
+      setRecommendations(recommendationsData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred loading recommendations');
+    } finally {
+      setLoadingRecommendations(false);
+    }
   };
 
   return (
@@ -202,12 +222,12 @@ function App() {
                             animationDelay: `${(previousDisplayLimit === 0 ? index : index - previousDisplayLimit) * 100}ms`,
                             animationFillMode: 'both'
                           } : {}}
-                        >
-                          <DarkSkyZoneCard
-                            zone={zone}
-                            rank={index + 1}
-                            userCurrentLocation={userCurrentLocation}
-                          />
+                        >                        <DarkSkyZoneCard
+                          zone={zone}
+                          rank={index + 1}
+                          userCurrentLocation={userCurrentLocation}
+                          onViewStargazingTimes={handleZoneSelectionForRecommendations}
+                        />
                         </div>
                       );
                     })}
@@ -244,15 +264,53 @@ function App() {
                     <Moon className="text-star-yellow" size={24} />
                     <h2 className="text-2xl font-bold">Best Stargazing Times</h2>
                   </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {recommendations.map((recommendation, index) => (
-                      <RecommendationCard
-                        key={recommendation.date}
-                        recommendation={recommendation}
-                        isTopRecommendation={index === 0}
-                      />
-                    ))}
-                  </div>
+                  
+                  {loadingRecommendations ? (
+                    <div className="text-center py-12">
+                      <div className="inline-flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cosmic-blue"></div>
+                        <p className="text-lg text-gray-300">
+                          Loading stargazing recommendations...
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Zone Info */}
+                      {recommendations.length > 0 && recommendations[0].conditions.bortle_scale_source && (
+                        <div className="glass-card p-4 mb-6 border-cosmic-blue/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2 text-sm text-gray-300">
+                              <MapPin size={16} className="text-cosmic-blue" />
+                              <span>Calculations based on: {recommendations[0].conditions.bortle_scale_source}</span>
+                              <span className="text-cosmic-blue">
+                                (Bortle {recommendations[0].conditions.bortle_scale})
+                              </span>
+                            </div>
+                            {selectedZoneForRecommendations && (
+                              <button
+                                onClick={() => setActiveTab('zones')}
+                                className="text-xs text-cosmic-blue hover:text-white transition-colors flex items-center space-x-1"
+                              >
+                                <ArrowUpDown size={12} />
+                                <span>View All Zones</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {recommendations.map((recommendation, index) => (
+                          <RecommendationCard
+                            key={recommendation.date}
+                            recommendation={recommendation}
+                            isTopRecommendation={index === 0}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -329,17 +329,25 @@ async def find_dark_sky_zones(location: LocationInput, limit: int = 0):
     return {"dark_sky_zones": closest_zones}
 
 @app.post("/stargazing-recommendations")
-async def get_stargazing_recommendations(location: LocationInput):
+async def get_stargazing_recommendations(location: LocationInput, zone_name: Optional[str] = None):
     """Get stargazing recommendations for the next 7 days."""
     # Get closest dark sky zones first
     zones_response = await find_dark_sky_zones(location)
     closest_zones = zones_response["dark_sky_zones"]
     
+    # If a specific zone is requested, find it; otherwise use the closest
+    if zone_name:
+        selected_zone = next((zone for zone in closest_zones if zone.name == zone_name), None)
+        if not selected_zone:
+            raise HTTPException(status_code=404, detail=f"Zone '{zone_name}' not found")
+        best_zone = selected_zone
+    else:
+        best_zone = closest_zones[0] if closest_zones else None
+    
     recommendations = []
     current_date = datetime.now()
     
-    # Use the best (closest) dark sky zone for moon calculations if available
-    best_zone = closest_zones[0] if closest_zones else None
+    # Use the selected zone for moon calculations
     moon_calc_lat = best_zone.latitude if best_zone else location.latitude
     moon_calc_lon = best_zone.longitude if best_zone else location.longitude
     
