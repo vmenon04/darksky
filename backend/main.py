@@ -24,12 +24,16 @@ MAX_CACHE_SIZE = 1000  # Maximum number of cached entries
 
 app = FastAPI(title="Stargazr API", version="1.0.0")
 
+# Get allowed origins from environment variable, with fallback for development
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+allowed_origins = [origin.strip() for origin in allowed_origins]  # Clean whitespace
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # Only allow necessary methods
+    allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
 )
 
 class LocationInput(BaseModel):
