@@ -1,43 +1,26 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
+  <!-- Simple gradient background -->
   <defs>
-    <radialGradient id="starryBg" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0B1426;stop-opacity:1" />
-    </radialGradient>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </linearGradient>
   </defs>
   
-  <rect width="1200" height="630" fill="url(#starryBg)"/>
+  <rect width="1200" height="630" fill="url(#bg)"/>
   
-  <!-- Stars -->
-  <circle cx="150" cy="80" r="2" fill="#ffffff" opacity="0.8"/>
-  <circle cx="300" cy="150" r="1.5" fill="#ffffff" opacity="0.6"/>
-  <circle cx="500" cy="100" r="2.5" fill="#ffffff" opacity="0.9"/>
-  <circle cx="750" cy="180" r="1" fill="#ffffff" opacity="0.5"/>
-  <circle cx="950" cy="120" r="2" fill="#ffffff" opacity="0.7"/>
-  <circle cx="1100" cy="200" r="1.5" fill="#ffffff" opacity="0.6"/>
-  <circle cx="200" cy="400" r="1" fill="#ffffff" opacity="0.4"/>
-  <circle cx="400" cy="450" r="2" fill="#ffffff" opacity="0.8"/>
-  <circle cx="600" cy="380" r="1.5" fill="#ffffff" opacity="0.6"/>
-  <circle cx="800" cy="420" r="2.5" fill="#ffffff" opacity="0.9"/>
-  <circle cx="1000" cy="480" r="1" fill="#ffffff" opacity="0.5"/>
-  <circle cx="100" cy="550" r="2" fill="#ffffff" opacity="0.7"/>
+  <!-- Few subtle stars -->
+  <circle cx="200" cy="120" r="2" fill="#ffffff" opacity="0.6"/>
+  <circle cx="1000" cy="150" r="1.5" fill="#ffffff" opacity="0.4"/>
+  <circle cx="300" cy="500" r="1" fill="#ffffff" opacity="0.5"/>
+  <circle cx="900" cy="480" r="2" fill="#ffffff" opacity="0.7"/>
   
-  <!-- Main icon/emoji -->
-  <text x="600" y="280" font-family="Arial, sans-serif" font-size="120" text-anchor="middle" fill="#3498DB">🌌</text>
+  <!-- Main galaxy emoji -->
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="140" text-anchor="middle">🌌</text>
   
-  <!-- Title -->
-  <text x="600" y="380" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#ffffff">Dark Sky Zone Finder</text>
+  <!-- Simple title -->
+  <text x="600" y="400" font-family="Arial, sans-serif" font-size="56" font-weight="bold" text-anchor="middle" fill="#ffffff">Dark Sky Zone Finder</text>
   
-  <!-- Subtitle -->
-  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#B0B0B0">Find the closest dark sky zones for stargazing</text>
-  
-  <!-- Search icon -->
-  <circle cx="520" cy="500" r="25" stroke="#3498DB" stroke-width="3" fill="none"/>
-  <line x1="538" y1="518" x2="555" y2="535" stroke="#3498DB" stroke-width="3"/>
-  
-  <!-- Telescope icon -->
-  <line x1="650" y1="480" x2="700" y2="520" stroke="#3498DB" stroke-width="4"/>
-  <circle cx="650" cy="480" r="8" fill="#3498DB"/>
-  <circle cx="700" cy="520" r="5" fill="#3498DB"/>
+  <!-- Clean subtitle -->
+  <text x="600" y="450" font-family="Arial, sans-serif" font-size="28" text-anchor="middle" fill="#94a3b8">Find the best dark sky zones for stargazing</text>
 </svg>

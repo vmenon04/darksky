@@ -2,33 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0B1426" />
-    <meta
-      name="description"
-      content="Find the closest International Dark-Sky Association certified dark sky zones and discover the best times for stargazing."
-    />
     
-    <!-- Open Graph / Facebook -->
+    <!-- Basic Meta -->
+    <title>Dark Sky Zone Finder</title>
+    <meta name="description" content="Find the closest dark sky zones and discover the best times for stargazing." />
+    <meta name="theme-color" content="#0B1426" />
+    
+    <!-- Web App Manifest (handles most icons and PWA features) -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Favicon (fallback for browsers) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌌</text></svg>" />
+    
+    <!-- Apple Touch Icon (iOS home screen) -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%230B1426%22/><text x=%2250%22 y=%2265%22 font-size=%2260%22 text-anchor=%22middle%22>🌌</text></svg>" />
+    
+    <!-- Open Graph / Social Sharing -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://your-domain.com/" />
+    <meta property="og:url" content="https://darkskyfinder.vercel.app/" />
     <meta property="og:title" content="Dark Sky Zone Finder" />
-    <meta property="og:description" content="Find the closest International Dark-Sky Association certified dark sky zones and discover the best times for stargazing." />
-    <meta property="og:image" content="%PUBLIC_URL%/og-image.svg" />
+    <meta property="og:description" content="Find the closest dark sky zones and discover the best times for stargazing." />
+    <meta property="og:image" content="https://darkskyfinder.vercel.app/og-image.svg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     
     <!-- Twitter Card -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://your-domain.com/" />
-    <meta property="twitter:title" content="Dark Sky Zone Finder" />
-    <meta property="twitter:description" content="Find the closest International Dark-Sky Association certified dark sky zones and discover the best times for stargazing." />
-    <meta property="twitter:image" content="%PUBLIC_URL%/og-image.svg" />
-    
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <title>Dark Sky Zone Finder</title>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://darkskyfinder.vercel.app/" />
+    <meta name="twitter:title" content="Dark Sky Zone Finder" />
+    <meta name="twitter:description" content="Find the closest dark sky zones and discover the best times for stargazing." />
+    <meta name="twitter:image" content="https://darkskyfinder.vercel.app/og-image.svg" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
