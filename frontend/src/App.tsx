@@ -171,29 +171,31 @@ function App() {
 
             {(darkSkyZones.length > 0 || recommendations.length > 0) && (
               <div className="mb-8">
-                <div className="flex flex-wrap space-x-1 space-y-1 sm:space-y-0 glass-card p-1 mb-6 rounded-lg">
-                  <button
-                    onClick={() => setActiveTab('zones')}
-                    className={`px-4 sm:px-6 py-3 rounded-md transition-all duration-300 flex items-center space-x-2 text-sm ${
-                      activeTab === 'zones'
-                        ? 'bg-cosmic-blue text-white'
-                        : 'text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    <MapPin size={16} />
-                    <span>Dark Sky Zones</span>
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('recommendations')}
-                    className={`px-4 sm:px-6 py-3 rounded-md transition-all duration-300 flex items-center space-x-2 text-sm ${
-                      activeTab === 'recommendations'
-                        ? 'bg-cosmic-blue text-white'
-                        : 'text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    <Calendar size={16} />
-                    <span>Best Stargazing Times</span>
-                  </button>
+                <div className="glass-card p-1 mb-6 rounded-lg">
+                  <div className="grid grid-cols-2 gap-1">
+                    <button
+                      onClick={() => setActiveTab('zones')}
+                      className={`px-4 sm:px-6 py-3 rounded-md transition-all duration-300 flex items-center justify-center space-x-2 text-sm ${
+                        activeTab === 'zones'
+                          ? 'bg-cosmic-blue text-white'
+                          : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      <MapPin size={16} />
+                      <span>Dark Sky Zones</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('recommendations')}
+                      className={`px-4 sm:px-6 py-3 rounded-md transition-all duration-300 flex items-center justify-center space-x-2 text-sm ${
+                        activeTab === 'recommendations'
+                          ? 'bg-cosmic-blue text-white'
+                          : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      <Calendar size={16} />
+                      <span>Best Stargazing Times</span>
+                    </button>
+                  </div>
                 </div>
 
                 {activeTab === 'zones' && darkSkyZones.length > 0 && (
