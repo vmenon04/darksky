@@ -37,6 +37,38 @@
     overflow: hidden;
   }
 
+  .description-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .description-expanded {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+
+  @media (max-width: 768px) {
+    .description-expanded {
+      max-height: 150px;
+    }
+  }
+
+  .description-expanded::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .description-expanded::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .description-expanded::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
+
   /* Card animation */
   .animate-fade-in-up {
     opacity: 0;
@@ -56,7 +88,7 @@
   }
 
   .animate-expand.expanded {
-    max-height: 500px; /* Adjust based on content */
+    max-height: 800px; /* Increased to accommodate longer descriptions */
     transition: max-height 0.3s ease-in;
   }
 

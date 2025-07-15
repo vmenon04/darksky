@@ -32,12 +32,28 @@ const getBortleColor = (scale: number): string => {
   return 'text-red-400';
 };
 
+const truncateDescription = (description: string, maxLength: number = 100): { truncated: string; needsTruncation: boolean } => {
+  if (description.length <= maxLength) {
+    return { truncated: description, needsTruncation: false };
+  }
+  
+  // Find the last space before the maxLength to avoid cutting words
+  const lastSpaceIndex = description.lastIndexOf(' ', maxLength);
+  const cutIndex = lastSpaceIndex > 0 ? lastSpaceIndex : maxLength;
+  
+  return {
+    truncated: description.substring(0, cutIndex) + '...',
+    needsTruncation: true
+  };
+};
+
 export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, userCurrentLocation, onViewStargazingTimes, isLoadingRecommendations }) => {
   const [isLoadingApple, setIsLoadingApple] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [hintKey, setHintKey] = useState(0);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   const handleMapAction = async (mapType: 'apple' | 'google') => {
     const setLoading = mapType === 'apple' ? setIsLoadingApple : setIsLoadingGoogle;
@@ -69,6 +85,7 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, us
       // Collapsing: hide hint immediately, then collapse
       setShowHint(false);
       setIsExpanded(false);
+      setIsDescriptionExpanded(false); // Reset description expansion when collapsing card
       // Show hint after collapse animation completes with new key for animation
       setTimeout(() => {
         setShowHint(true);
@@ -132,9 +149,31 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, us
       <div className={`animate-expand ${isExpanded ? 'expanded' : ''}`}>
         <div className={`animate-expand-content ${isExpanded ? 'expanded' : ''} space-y-3 pt-3`}>
           <div className="h-auto">
-            <p className="text-gray-300 text-sm leading-relaxed">
-              {zone.description}
-            </p>
+            {(() => {
+              const { truncated, needsTruncation } = truncateDescription(zone.description);
+              const displayText = isDescriptionExpanded ? zone.description : truncated;
+              
+              return (
+                <div>
+                  <div className={`${isDescriptionExpanded ? 'description-expanded' : ''}`}>
+                    <p className="text-gray-300 text-sm leading-relaxed description-text">
+                      {displayText}
+                    </p>
+                  </div>
+                  {needsTruncation && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDescriptionExpanded(!isDescriptionExpanded);
+                      }}
+                      className="text-cosmic-blue text-xs mt-1 hover:text-cosmic-blue/80 transition-colors"
+                    >
+                      {isDescriptionExpanded ? 'Show less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="flex items-center space-x-4 text-xs text-gray-400">
