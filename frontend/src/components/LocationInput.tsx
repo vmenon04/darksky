@@ -138,7 +138,14 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
               type="text"
               id="zipcode"
               value={zipcode}
-              onChange={(e) => setZipcode(e.target.value)}
+              onChange={(e) => {
+                setZipcode(e.target.value);
+                // Clear lat/lng when user enters zipcode
+                if (e.target.value.trim()) {
+                  setLatitude('');
+                  setLongitude('');
+                }
+              }}
               placeholder="e.g., 90210 or 10001"
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cosmic-blue focus:border-transparent"
               disabled={loading || gettingLocation || isGeocoding}

@@ -70,6 +70,9 @@ function App() {
     // If this is the user's current location, store it separately
     if (isCurrentLocation) {
       setUserCurrentLocation(newLocation);
+    } else {
+      // If this is NOT the current location (e.g., zipcode search), clear the stored current location
+      setUserCurrentLocation(null);
     }
     
     // Reset display limit for new search
@@ -271,10 +274,11 @@ function App() {
                       {sortedDarkSkyZones.map((zone, index) => {
                         const isNewCard = index >= previousDisplayLimit;
                         const shouldAnimate = previousDisplayLimit === 0 || isNewCard;
+                        const cardKey = animationKey.startsWith('sort-') || animationKey.startsWith('search-') ? `${zone.name}-${animationKey}` : zone.name;
                         
                         return (
                           <div
-                            key={zone.name}
+                            key={cardKey}
                             className={shouldAnimate ? "animate-fade-in-up" : ""}
                             style={shouldAnimate ? {
                               animationDelay: `${(previousDisplayLimit === 0 ? index : index - previousDisplayLimit) * 100}ms`,
@@ -282,7 +286,7 @@ function App() {
                             } : {}}
                           >
                             <DarkSkyZoneCard
-                              key={animationKey.startsWith('sort-') ? `${zone.name}-${animationKey}` : zone.name}
+                              key={cardKey}
                               zone={zone}
                               rank={index + 1}
                               userCurrentLocation={userCurrentLocation}
