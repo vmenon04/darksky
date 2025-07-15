@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { LocationInput } from './components/LocationInput';
 import { DarkSkyZoneCard } from './components/DarkSkyZoneCard';
 import { RecommendationCard } from './components/RecommendationCard';
@@ -140,7 +141,7 @@ function App() {
               </h1>
             </div>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-              Discover the closest International Dark-Sky Association certified zones and 
+              Discover the closest dark sky zones and 
               find the perfect time for your next stargazing adventure.
             </p>
           </div>
@@ -479,6 +480,7 @@ function App() {
         </footer>
       </div>
       <Analytics />
+      <SpeedInsights />
     </div>
   );
 }
