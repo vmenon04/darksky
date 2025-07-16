@@ -131,7 +131,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
         {/* Zipcode Input */}
         <div>
           <label htmlFor="zipcode" className="block text-sm font-medium text-gray-300 mb-2">
-            Zipcode
+            US Zipcode
           </label> 
           <div className="relative">
             <input
