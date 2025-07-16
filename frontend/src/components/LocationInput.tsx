@@ -19,17 +19,36 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
 
   const geocodeZipcode = async (zipcode: string): Promise<{ lat: number; lng: number; name: string } | null> => {
     try {
-      // Using Nominatim to geocode US zipcodes
+      // Sanitize zipcode input
+      const sanitizedZipcode = zipcode.replace(/[^0-9-]/g, '');
+      
+      // Using Nominatim to geocode US zipcodes with timeout and proper error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(zipcode)}&countrycodes=us&limit=1&addressdetails=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(sanitizedZipcode)}&countrycodes=us&limit=1&addressdetails=1`,
+        { 
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Stargazr/1.0 (https://stargazr.org)'
+          }
+        }
       );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       if (data.length > 0) {
         const result = data[0];
         return {
           lat: parseFloat(result.lat),
           lng: parseFloat(result.lon),
-          name: result.display_name || zipcode
+          name: result.display_name || sanitizedZipcode
         };
       }
       return null;
@@ -131,7 +150,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({ onLocationSubmit, 
         {/* Zipcode Input */}
         <div>
           <label htmlFor="zipcode" className="block text-sm font-medium text-gray-300 mb-2">
-            Zipcode
+            US Zipcode
           </label> 
           <div className="relative">
             <input

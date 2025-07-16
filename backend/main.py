@@ -1,3 +1,15 @@
+import logging
+import sys
+
+# Setup security logging
+security_logger = logging.getLogger("security")
+security_handler = logging.StreamHandler(sys.stdout)
+security_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - SECURITY - %(levelname)s - %(message)s'
+))
+security_logger.addHandler(security_handler)
+security_logger.setLevel(logging.WARNING)
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -28,8 +40,9 @@ MAX_CACHE_SIZE = 1000  # Maximum number of cached entries
 
 app = FastAPI(title="Stargazr API", version="1.0.0")
 
-# Rate limiting setup
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiting setup with configurable limits
+rate_limit_per_minute = os.getenv("RATE_LIMIT_PER_MINUTE", "60")
+limiter = Limiter(key_func=get_remote_address, default_limits=[f"{rate_limit_per_minute}/minute"])
 app.state.limiter = limiter
 
 # Custom rate limit exceeded handler
@@ -67,6 +80,25 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],  # Only allow necessary headers
 )
 
+# Request size and validation middleware
+@app.middleware("http")
+async def validate_request_size(request: Request, call_next):
+    # Limit request body size to 1MB
+    max_size = 1024 * 1024  # 1MB
+    content_length = request.headers.get("content-length")
+    
+    if content_length and int(content_length) > max_size:
+        raise HTTPException(status_code=413, detail="Request too large")
+    
+    # Validate User-Agent (basic bot detection)
+    user_agent = request.headers.get("user-agent", "").lower()
+    suspicious_agents = ["sqlmap", "nikto", "nmap", "masscan", "zap"]
+    if any(agent in user_agent for agent in suspicious_agents):
+        security_logger.warning(f"Suspicious User-Agent detected: {user_agent} from IP: {get_remote_address(request)}")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    return await call_next(request)
+
 # Security headers middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -78,31 +110,37 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow" if os.getenv("ENVIRONMENT") != "production" else "index, follow"
     
     # Content Security Policy (CSP)
     csp = (
         "default-src 'self'; "
-        "script-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://vercel.live; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.openweathermap.org https://clearoutside.com; "
+        "connect-src 'self' https://api.openweathermap.org https://clearoutside.com https://nominatim.openstreetmap.org https://vitals.vercel-insights.com; "
         "font-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
-        "form-action 'self';"
+        "form-action 'self'; "
+        "frame-ancestors 'none'; "
+        "upgrade-insecure-requests;"
     )
     response.headers["Content-Security-Policy"] = csp
     
     # HSTS (HTTP Strict Transport Security) - only in production
     if os.getenv("ENVIRONMENT") == "production":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    
+    # Server identification removal
+    response.headers.pop("server", None)
     
     return response
 
 class LocationInput(BaseModel):
     latitude: float = Field(..., ge=-90, le=90, description="Latitude between -90 and 90 degrees")
     longitude: float = Field(..., ge=-180, le=180, description="Longitude between -180 and 180 degrees")
-    name: Optional[str] = Field(None, max_length=100, description="Optional location name")
+    name: Optional[str] = Field(None, max_length=100, min_length=1, pattern=r'^[a-zA-Z0-9\s\-_.,()]+$', description="Optional location name with safe characters only")
 
 class WeatherConditions(BaseModel):
     temperature_f: float
