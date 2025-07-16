@@ -133,7 +133,8 @@ async def add_security_headers(request: Request, call_next):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     
     # Server identification removal
-    response.headers.pop("server", None)
+    if "server" in response.headers:
+        del response.headers["server"]
     
     return response
 
