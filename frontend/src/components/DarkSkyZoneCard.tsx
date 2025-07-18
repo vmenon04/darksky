@@ -99,12 +99,12 @@ export const DarkSkyZoneCard: React.FC<DarkSkyZoneCardProps> = ({ zone, rank, us
   };
 
   return (
-    <div className="glass-card p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-[1.02]">
+    <div 
+      className="glass-card p-6 hover:bg-white/15 transition-all duration-300 transform hover:scale-[1.02] cursor-pointer select-none"
+      onClick={handleToggleExpansion}
+    >
       {/* Always visible header */}
-      <div 
-        className="cursor-pointer select-none"
-        onClick={handleToggleExpansion}
-      >
+      <div>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
             <div className="w-8 h-8 bg-cosmic-blue rounded-full flex items-center justify-center text-sm font-bold">
