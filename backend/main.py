@@ -378,48 +378,60 @@ def estimate_bortle_scale_fallback(latitude: float, longitude: float) -> int:
     return estimated
 
 def calculate_moon_phase_and_illumination(date: datetime) -> tuple:
-    """Calculate moon phase and illumination percentage for a given date."""
+    """
+    Calculate moon phase and illumination percentage for a given date.
+    Uses PyEphem's lunation calculation for accurate phase determination.
+    """
+    # Convert datetime to ephem date
+    ephem_date = ephem.Date(date)
+    
+    # Get illumination percentage (0-100) using moon_phase property
     observer = ephem.Observer()
-    observer.date = date
-    
+    observer.date = ephem_date
     moon = ephem.Moon()
-    sun = ephem.Sun()
     moon.compute(observer)
-    sun.compute(observer)
-    
-    # Get illumination percentage (0-100)
     illumination = moon.moon_phase * 100
     
-    # Calculate the phase angle (moon's position relative to sun)
-    # This is the key to determining waxing vs waning
-    moon_sun_angle = (moon.ra - sun.ra) * 180 / math.pi
-    
-    # Normalize angle to 0-360 degrees
-    while moon_sun_angle < 0:
-        moon_sun_angle += 360
-    while moon_sun_angle >= 360:
-        moon_sun_angle -= 360
-    
-    # Determine moon phase based on angle and illumination
-    if illumination < 1:
-        phase = "New Moon"
-    elif illumination < 50:
-        if moon_sun_angle < 180:
+    # Calculate lunation (0-1 where 0=new, 0.5=full, 1=new)
+    # This gives us the precise position in the lunar cycle
+    try:
+        next_new_moon = ephem.next_new_moon(ephem_date)
+        prev_new_moon = ephem.previous_new_moon(ephem_date)
+        
+        # Lunation: 0=new moon, 0.5=full moon, 1=new moon again
+        lunation = (ephem_date - prev_new_moon) / (next_new_moon - prev_new_moon)
+        
+        # Determine phase name based on lunation value
+        if lunation < 0.03 or lunation > 0.97:  # Within ~1 day of new moon
+            phase = "New Moon"
+        elif lunation < 0.22:  # 0.03 to 0.22
             phase = "Waxing Crescent"
-        else:
-            phase = "Waning Crescent"
-    elif 49 <= illumination <= 51:  # Around 50% illumination
-        if moon_sun_angle < 180:
+        elif lunation < 0.28:  # 0.22 to 0.28 (around first quarter)
             phase = "First Quarter"
-        else:
-            phase = "Last Quarter"
-    elif illumination < 99:
-        if moon_sun_angle < 180:
+        elif lunation < 0.47:  # 0.28 to 0.47
             phase = "Waxing Gibbous"
+        elif lunation < 0.53:  # 0.47 to 0.53 (around full moon)
+            phase = "Full Moon"
+        elif lunation < 0.72:  # 0.53 to 0.72
+            phase = "Waning Gibbous"
+        elif lunation < 0.78:  # 0.72 to 0.78 (around last quarter)
+            phase = "Last Quarter"
+        else:  # 0.78 to 0.97
+            phase = "Waning Crescent"
+            
+    except Exception as e:
+        # Fallback to simple illumination-based phase determination
+        print(f"Error calculating lunation: {e}, falling back to illumination-based calculation")
+        if illumination < 1:
+            phase = "New Moon"
+        elif illumination < 25:
+            phase = "Waxing Crescent"
+        elif illumination < 75:
+            phase = "First Quarter" if illumination < 50 else "Waxing Gibbous"
+        elif illumination < 99:
+            phase = "Full Moon"
         else:
             phase = "Waning Gibbous"
-    else:  # illumination >= 99
-        phase = "Full Moon"
     
     return phase, illumination
 
