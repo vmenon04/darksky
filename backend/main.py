@@ -383,23 +383,42 @@ def calculate_moon_phase_and_illumination(date: datetime) -> tuple:
     observer.date = date
     
     moon = ephem.Moon()
+    sun = ephem.Sun()
     moon.compute(observer)
+    sun.compute(observer)
     
+    # Get illumination percentage (0-100)
     illumination = moon.moon_phase * 100
     
+    # Calculate the phase angle (moon's position relative to sun)
+    # This is the key to determining waxing vs waning
+    moon_sun_angle = (moon.ra - sun.ra) * 180 / math.pi
+    
+    # Normalize angle to 0-360 degrees
+    while moon_sun_angle < 0:
+        moon_sun_angle += 360
+    while moon_sun_angle >= 360:
+        moon_sun_angle -= 360
+    
+    # Determine moon phase based on angle and illumination
     if illumination < 1:
         phase = "New Moon"
-    elif illumination < 25:
-        phase = "Waxing Crescent"
     elif illumination < 50:
-        phase = "First Quarter"
-    elif illumination < 75:
-        phase = "Waxing Gibbous"
+        if moon_sun_angle < 180:
+            phase = "Waxing Crescent"
+        else:
+            phase = "Waning Crescent"
+    elif 49 <= illumination <= 51:  # Around 50% illumination
+        if moon_sun_angle < 180:
+            phase = "First Quarter"
+        else:
+            phase = "Last Quarter"
     elif illumination < 99:
-        phase = "Waning Gibbous"
-    elif illumination < 100:
-        phase = "Last Quarter"
-    else:
+        if moon_sun_angle < 180:
+            phase = "Waxing Gibbous"
+        else:
+            phase = "Waning Gibbous"
+    else:  # illumination >= 99
         phase = "Full Moon"
     
     return phase, illumination
